@@ -1,4 +1,4 @@
-# chromebook-setup
+# linxu_setup
 
 Automated Python dev environment setup for Chromebook (Crostini) and any Debian/Ubuntu machine.
 
@@ -8,17 +8,17 @@ Automated Python dev environment setup for Chromebook (Crostini) and any Debian/
 
 ### Chromebook
 ```bash
-curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/linxu_setup/main/bootstrap.sh | bash
 ```
 
 ### Any Debian/Ubuntu machine
 ```bash
-curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/linux_setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/linxu_setup/main/linux_setup.sh | bash
 ```
 
 ### Terminal config (run after either of the above)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/terminal_setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/linxu_setup/main/terminal_setup.sh | bash
 ```
 
 ## Scripts
@@ -70,7 +70,7 @@ All scripts are **idempotent** — safe to re-run, skips anything already instal
 ## Repo Structure
 
 ```
-chromebook-setup/
+linxu_setup/
 ├── README.md
 ├── chromebook_setup.sh        ← Chromebook entry point
 ├── linux_setup.sh             ← Portable core
@@ -95,21 +95,21 @@ chromebook-setup/
 gh auth login
 
 # Create the repo (first time only)
-gh repo create chromebook-setup --public
+gh repo create linxu_setup --public
 
 # Push
-mkdir ~/chromebook-setup && cd ~/chromebook-setup
+mkdir ~/linxu_setup && cd ~/linxu_setup
 git init
 # copy scripts and configs in, then:
 git add . && git commit -m "initial"
-git remote add origin git@github.com:romhom/chromebook-setup.git
+git remote add origin git@github.com:romhom/linxu_setup.git
 git push -u origin main
 ```
 
 ### Updating the setup
 
 ```bash
-cd ~/chromebook-setup
+cd ~/linxu_setup
 micro linux_setup.sh        # or whichever file needs changing
 git add . && git commit -m "add xyz"
 git push
@@ -119,8 +119,8 @@ git push
 
 ```bash
 # Re-run is safe — skips already-installed tools
-bash ~/chromebook-setup/linux_setup.sh
-bash ~/chromebook-setup/terminal_setup.sh
+bash ~/linxu_setup/linux_setup.sh
+bash ~/linxu_setup/terminal_setup.sh
 ```
 
 ---
