@@ -8,18 +8,53 @@ Automated Python dev environment setup for Chromebook (Crostini) and any Debian/
 
 ### Chromebook
 ```bash
-curl -fsSL https://raw.githubusercontent.com/romhom/linxu_setup/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/bootstrap.sh | bash
 ```
 
 ### Any Debian/Ubuntu machine
 ```bash
-curl -fsSL https://raw.githubusercontent.com/romhom/linxu_setup/main/linux_setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/linux_setup.sh | bash
 ```
 
 ### Terminal config (run after either of the above)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/romhom/linxu_setup/main/terminal_setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/terminal_setup.sh | bash
 ```
+## Updating Your Setup
+
+### Update everything on a machine
+```bash
+setup-update
+```
+This pulls the latest scripts and configs from GitHub, applies them to your home directory, and reloads tmux config if running. Then reload your shell:
+```bash
+reload
+```
+
+### After changing a script or config in the repo
+```bash
+cd ~/linux_setup
+micro configs/.bashrc_extras   # or whichever file
+git add . && git commit -m "describe change"
+git push
+```
+Then on any other machine:
+```bash
+setup-update && reload
+```
+
+### Applying setup changes to an existing machine
+Re-running the setup scripts is safe — everything is idempotent and skips already-installed tools:
+```bash
+bash ~/linux_setup/linux_setup.sh
+bash ~/linux_setup/terminal_setup.sh
+```
+
+### Fresh Chromebook
+```bash
+curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/bootstrap.sh | bash
+```
+
 
 ## Scripts
 
