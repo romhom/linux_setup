@@ -393,13 +393,14 @@ else
     warn "gh already installed — skipping"
 fi
 
-# glow — markdown in terminal
+# glow — markdown in terminal (via Charm apt repo)
 if ! command -v glow &>/dev/null; then
-    GLOW_VER=$(curl -s https://api.github.com/repos/charmbracelet/glow/releases/latest \
-        | grep tag_name | cut -d'"' -f4 | tr -d 'v')
-    curl -fsSL \
-        "https://github.com/charmbracelet/glow/releases/latest/download/glow_${GLOW_VER}_linux_amd64.tar.gz" \
-        | tar -xz -C "$HOME/.local/bin" glow
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://repo.charm.sh/apt/gpg.key \
+        | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" \
+        | sudo tee /etc/apt/sources.list.d/charm.list > /dev/null
+    sudo apt update && sudo apt install -y glow
     log "glow installed"
 else
     warn "glow already installed — skipping"
