@@ -1,14 +1,21 @@
 # =============================================================================
 # ~/.bashrc_extras — aliases, functions, exports
 # Sourced by ~/.bashrc. Edit here, not in .bashrc directly.
+# Primary Python workflow: uv. Mamba for conda-only packages only.
 # =============================================================================
 
 # ── History ───────────────────────────────────────────────────────────────────
 export HISTSIZE=100000
 export HISTFILESIZE=100000
-export HISTCONTROL=ignoredups:erasedups     # no duplicate entries
-export HISTIGNORE="ls:ll:cd:pwd:exit:clear" # skip trivial commands
-shopt -s histappend                          # append rather than overwrite
+export HISTCONTROL=ignoredups:erasedups
+export HISTIGNORE="ls:ll:cd:pwd:exit:clear:history"
+shopt -s histappend
+shopt -s cdspell        # auto-correct minor cd typos
+shopt -s checkwinsize   # update LINES/COLUMNS after each command
+
+# ── Bracketed paste fix ───────────────────────────────────────────────────────
+# Prevents %200 and %201 appearing when pasting in Crostini terminal
+bind 'set enable-bracketed-paste off'
 PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
 
 # ── Core behaviour ────────────────────────────────────────────────────────────
@@ -16,88 +23,216 @@ export EDITOR=micro
 export VISUAL=micro
 export PAGER=less
 export LESS="-R --quit-if-one-screen --no-init"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"  # bat as man pager
 
 # ── Path ──────────────────────────────────────────────────────────────────────
 export PATH="$HOME/.local/bin:$PATH"
+
+# ── SSH agent persistence ─────────────────────────────────────────────────────
+# Keeps agent alive across terminal sessions — only prompts for passphrase once
+SSH_ENV="$HOME/.ssh/agent-env"
+_start_ssh_agent() {
+    ssh-agent | sed 's/^echo/#echo/' > "$SSH_ENV"
+    chmod 600 "$SSH_ENV"
+    source "$SSH_ENV" > /dev/null
+    ssh-add "$HOME/.ssh/id_ed25519" 2>/dev/null || true
+}
+if [[ -f "$SSH_ENV" ]]; then
+    source "$SSH_ENV" > /dev/null
+    kill -0 "$SSH_AGENT_PID" 2>/dev/null || _start_ssh_agent
+else
+    _start_ssh_agent
+fi
 
 # ── ls ────────────────────────────────────────────────────────────────────────
 alias ls='ls --color=auto --group-directories-first'
 alias ll='ls -lah --color=auto --group-directories-first'
 alias la='ls -A --color=auto'
 alias l='ls -CF'
-alias lt='ls -laht'          # sorted by time
-alias lS='ls -lahS'          # sorted by size
+alias lt='ls -laht'          # sort by time
+alias lS='ls -lahS'          # sort by size
+alias lx='ls -lahX'          # sort by extension
 
 # ── Navigation ────────────────────────────────────────────────────────────────
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias ~='cd ~'
-alias -- -='cd -'            # jump to previous directory
+alias -- -='cd -'
 
 # ── Safety ────────────────────────────────────────────────────────────────────
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 alias mkdir='mkdir -pv'
+alias ln='ln -i'
 
 # ── Better defaults ───────────────────────────────────────────────────────────
-alias cat='bat --paging=never'      # bat as cat replacement
-alias less='bat'                    # bat as pager
+alias cat='bat --paging=never'
+alias less='bat'
 alias grep='grep --color=auto'
-alias df='duf'                      # better disk usage
-alias du='du -sh'
+alias egrep='egrep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias df='duf'
+alias du='ncdu'              # interactive disk usage
+alias dus='du -sh *'         # quick size summary of current dir
 alias free='free -h'
-alias diff='delta'                  # better diff
-alias find='fd'                     # better find
+alias diff='delta'
+alias find='fd'
 alias top='htop'
 alias ps='ps auxf'
+alias md='glow'              # render markdown: md README.md
+
+# ── Clipboard ─────────────────────────────────────────────────────────────────
+alias pbcopy='xclip -selection clipboard'
+alias pbpaste='xclip -selection clipboard -o'
+# Usage: cat file.txt | pbcopy    or    pbpaste > file.txt
 
 # ── Git ───────────────────────────────────────────────────────────────────────
 alias g='git'
-alias gs='git status'
+alias gs='git status -sb'                  # short status with branch
 alias ga='git add'
 alias gaa='git add --all'
+alias gap='git add --patch'                # interactive staging
 alias gc='git commit -m'
 alias gca='git commit --amend'
+alias gcane='git commit --amend --no-edit' # amend without changing message
 alias gp='git push'
+alias gpf='git push --force-with-lease'   # safe force push
 alias gpl='git pull'
+alias gplr='git pull --rebase'
 alias gd='git diff'
 alias gds='git diff --staged'
 alias gco='git checkout'
+alias gcb='git checkout -b'               # create and switch branch
 alias gb='git branch'
+alias gba='git branch -a'                 # all branches including remote
+alias gbd='git branch -d'                 # delete branch
+alias gbD='git branch -D'                 # force delete branch
 alias glog='git log --oneline --graph --decorate --all'
+alias glp='git log --pretty=format:"%h %ad | %s%d [%an]" --date=short'
+alias gst='git stash'
+alias gstp='git stash pop'
+alias gstl='git stash list'
+alias grb='git rebase'
+alias grbi='git rebase -i'                # interactive rebase
+alias gcp='git cherry-pick'
+alias gtag='git tag -n'                   # list tags with messages
+alias gclean='git clean -fd'              # remove untracked files
+alias greset='git reset --hard HEAD'      # reset to last commit (careful)
 alias lg='lazygit'
 
-# ── Python / uv ──────────────────────────────────────────────────────────────
-alias py='python3'
-alias python='python3'
-alias pip='uv pip'               # always use uv pip
-alias venv='uv venv .venv'       # create venv in current dir
+# ── GitHub CLI ────────────────────────────────────────────────────────────────
+alias ghpr='gh pr create'
+alias ghprl='gh pr list'
+alias ghprv='gh pr view --web'
+alias ghil='gh issue list'
+alias ghic='gh issue create'
+alias ghrv='gh repo view --web'
+alias ghrun='gh run list'
+
+# ── uv — primary Python workflow ──────────────────────────────────────────────
+
+# Project management
+alias uvi='uv init'                        # scaffold new project
+alias uva='uv add'                         # add dependency
+alias uvad='uv add --dev'                  # add dev dependency
+alias uvr='uv remove'                      # remove dependency
+alias uvs='uv sync'                        # sync env to lockfile
+alias uvsl='uv sync --locked'             # sync exactly to lockfile (CI-safe)
+alias uvl='uv lock'                        # update lockfile
+alias uvrun='uv run'                       # run in project env
+alias uvx='uvx'                            # run tool without installing
+
+# Python versions
+alias uvp='uv python install'
+alias uvpl='uv python list'
+alias uvpf='uv python find'
+alias uvpp='uv python pin'                 # pin python version for project
+
+# Venv
+alias venv='uv venv'
+alias venv12='uv venv --python 3.12'
+alias venv311='uv venv --python 3.11'
 alias activate='source .venv/bin/activate'
 alias da='deactivate'
-alias uvr='uv run'               # run script in project env
-alias jl='jupyter lab'           # launch jupyter lab
-alias jn='jupyter notebook'
 
-# ── mamba / conda ─────────────────────────────────────────────────────────────
-alias ca='mamba activate'
-alias cda='mamba deactivate'
-alias cl='mamba env list'
-alias cc='mamba create -n'       # cc myenv python=3.12
-alias ci='mamba install'
-alias cu='mamba update --all'
-alias cr='mamba remove'
+# Packages
+alias pip='uv pip'
+alias pipi='uv pip install'
+alias pipu='uv pip install --upgrade'
+alias pipf='uv pip freeze'
+alias pipl='uv pip list'
+alias pipout='uv pip list --outdated'      # show outdated packages
+
+# Tools
+alias uvti='uv tool install'
+alias uvtl='uv tool list'
+alias uvtu='uv tool upgrade --all'
+alias uvtr='uv tool uninstall'
+
+# Jupyter
+alias jl='uv run jupyter lab'
+alias jn='uv run jupyter notebook'
+
+# ── Code quality tools ────────────────────────────────────────────────────────
+alias lint='uv run ruff check .'
+alias lintfix='uv run ruff check --fix .'
+alias format='uv run ruff format .'
+alias typecheck='uv run mypy .'
+alias secure='uv run bandit -r .'         # security scan
+alias deadcode='uv run vulture .'         # find unused code
+alias audit='uv run pip-audit'            # CVE scan
+alias deptree='uv run pipdeptree'         # show dependency tree
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+alias t='uv run pytest'
+alias tv='uv run pytest -v'
+alias tc='uv run pytest --cov'
+alias tf='uv run pytest --failed-first'   # run failed tests first
+alias tlf='uv run pytest -x'             # stop on first failure
+alias twatch='uv run pytest-watch'        # re-run on file changes
+
+# ── Data tools ────────────────────────────────────────────────────────────────
+alias vd='visidata'                       # TUI spreadsheet — vd data.csv
+alias duck='duckdb'                       # SQL over CSV/Parquet: duck :memory:
+alias csv='visidata'                      # open any CSV in visidata
+
+# csvkit shortcuts
+alias csvl='csvlook'                      # pretty-print CSV
+alias csvs='csvstat'                      # CSV statistics
+alias csvc='csvcut'                       # select columns
+alias csvq='csvsql --query'               # SQL against CSV
+
+# ── HTTP / API ────────────────────────────────────────────────────────────────
+alias GET='http GET'
+alias POST='http POST'
+alias PUT='http PUT'
+alias DELETE='http DELETE'
+alias api='posting'                        # TUI API client
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 alias d='docker'
 alias dc='docker compose'
+alias dcu='docker compose up -d'
+alias dcd='docker compose down'
+alias dcl='docker compose logs -f'
+alias dcr='docker compose restart'
 alias dps='docker ps'
 alias dpsa='docker ps -a'
 alias di='docker images'
 alias dex='docker exec -it'
 alias dlogs='docker logs -f'
 alias dprune='docker system prune -af'
+alias dstop='docker stop $(docker ps -q)' # stop all running containers
+
+# ── tmux ──────────────────────────────────────────────────────────────────────
+alias ta='tmux attach'                     # attach to last session
+alias tat='tmux attach -t'                 # attach to named session: tat work
+alias tn='tmux new -s'                     # new named session: tn work
+alias tl='tmux list-sessions'
+alias tk='tmux kill-session -t'            # kill named session: tk work
+alias tka='tmux kill-server'              # kill all sessions
 
 # ── System ────────────────────────────────────────────────────────────────────
 alias update='sudo apt update && sudo apt full-upgrade -y && sudo apt autoremove -y'
@@ -106,13 +241,31 @@ alias path='echo $PATH | tr ":" "\n"'
 alias reload='source ~/.bashrc && echo "~/.bashrc reloaded"'
 alias bashrc='$EDITOR ~/.bashrc'
 alias bashext='$EDITOR ~/.bashrc_extras'
+alias setup-update='bash ~/linux_setup/update.sh'
+alias sysinfo='inxi -Fxz 2>/dev/null || uname -a'
+alias meminfo='free -h && echo "" && cat /proc/meminfo | grep -i mem'
+alias cpuinfo='lscpu'
+alias diskinfo='duf'
+alias psg='ps auxf | grep -v grep | grep -i'   # search processes: psg python
+alias killp='kill -9'
+alias myip='curl -s ifconfig.me && echo ""'     # external IP
+alias localip='hostname -I | awk "{print \$1}"' # local IP
+alias speedtest='curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -'
+
+# ── Files and text ────────────────────────────────────────────────────────────
+alias count='wc -l'                        # count lines: cat file | count
+alias trim="sed 's/^[[:space:]]*//;s/[[:space:]]*$//'" # trim whitespace
+alias urlencode='python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))"'
+alias json='python3 -m json.tool'          # pretty print JSON: cat f.json | json
+alias epoch='date +%s'                     # current unix timestamp
+alias isodate='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
 # ── ChromeOS / Crostini ───────────────────────────────────────────────────────
 alias crdl='cd /mnt/chromeos/MyFiles/Downloads'
 alias crfiles='cd /mnt/chromeos/MyFiles'
 alias crgdrive='cd /mnt/chromeos/GoogleDrive/MyDrive'
 
-# ── Utility functions ─────────────────────────────────────────────────────────
+# ── Functions ─────────────────────────────────────────────────────────────────
 
 # mk — make dir and cd into it
 mk() { mkdir -p "$1" && cd "$1"; }
@@ -121,18 +274,18 @@ mk() { mkdir -p "$1" && cd "$1"; }
 extract() {
     if [[ -f "$1" ]]; then
         case "$1" in
-            *.tar.bz2)  tar xjf "$1"    ;;
-            *.tar.gz)   tar xzf "$1"    ;;
-            *.tar.xz)   tar xJf "$1"    ;;
+            *.tar.bz2)  tar xjf "$1"        ;;
+            *.tar.gz)   tar xzf "$1"        ;;
+            *.tar.xz)   tar xJf "$1"        ;;
             *.tar.zst)  tar --zstd -xf "$1" ;;
-            *.bz2)      bunzip2 "$1"    ;;
-            *.gz)       gunzip "$1"     ;;
-            *.tar)      tar xf "$1"     ;;
-            *.tbz2)     tar xjf "$1"    ;;
-            *.tgz)      tar xzf "$1"    ;;
-            *.zip)      unzip "$1"      ;;
-            *.Z)        uncompress "$1" ;;
-            *.7z)       7z x "$1"       ;;
+            *.bz2)      bunzip2 "$1"        ;;
+            *.gz)       gunzip "$1"         ;;
+            *.tar)      tar xf "$1"         ;;
+            *.tbz2)     tar xjf "$1"        ;;
+            *.tgz)      tar xzf "$1"        ;;
+            *.zip)      unzip "$1"          ;;
+            *.Z)        uncompress "$1"     ;;
+            *.7z)       7z x "$1"           ;;
             *)          echo "'$1' cannot be extracted" ;;
         esac
     else
@@ -140,40 +293,166 @@ extract() {
     fi
 }
 
-# mkpy — scaffold a new Python project with uv
+# mkpy — scaffold a complete uv Python project
 mkpy() {
     local name="${1:?Usage: mkpy <project-name>}"
     mkdir -p "$name" && cd "$name"
-    uv venv .venv
-    source .venv/bin/activate
-    touch README.md .env .gitignore
-    echo ".venv/\n.env\n__pycache__/\n*.pyc\n.DS_Store" > .gitignore
+
+    uv init --python 3.12
+    uv add --dev pytest pytest-cov ruff mypy pre-commit
+
+    # direnv auto-activation
+    echo 'source .venv/bin/activate' > .envrc
+    command -v direnv &>/dev/null && direnv allow .
+
+    cat > .gitignore <<'GITIGNORE'
+.venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+.DS_Store
+GITIGNORE
+
+    cat >> pyproject.toml <<'TOML'
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src --cov-report=term-missing"
+TOML
+
+    cat > .pre-commit-config.yaml <<'YAML'
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: debug-statements
+YAML
+
+    cat > Makefile <<'MAKEFILE'
+.PHONY: install test lint format typecheck secure clean
+
+install:
+	uv sync
+
+test:
+	uv run pytest
+
+lint:
+	uv run ruff check .
+
+format:
+	uv run ruff format .
+
+typecheck:
+	uv run mypy src/
+
+secure:
+	uv run bandit -r src/
+
+clean:
+	find . -type d -name __pycache__ -exec rm -rf {} +
+	find . -name "*.pyc" -delete
+	rm -rf .pytest_cache .ruff_cache .mypy_cache dist build
+MAKEFILE
+
+    mkdir -p tests && touch tests/__init__.py
+    uv run pre-commit install
     git init && git add . && git commit -m "initial commit"
-    echo "Project '$name' ready. Venv active."
+
+    echo ""
+    echo "Project '$name' ready."
+    echo "  make install   — sync deps"
+    echo "  make test      — run tests"
+    echo "  make lint      — lint"
+    echo "  make format    — format"
+    echo "  make secure    — security scan"
+    echo ""
 }
 
 # serve — quick HTTP server in current directory
 serve() {
     local port="${1:-8000}"
-    echo "Serving on http://localhost:$port"
-    python3 -m http.server "$port"
+    echo "Serving http://localhost:$port — Ctrl+C to stop"
+    uv run python -m http.server "$port"
 }
 
-# pyinfo — show current Python environment info
+# pyinfo — Python environment summary
 pyinfo() {
-    echo "Python:  $(python3 --version)"
-    echo "uv:      $(uv --version 2>/dev/null || echo 'not found')"
-    echo "which:   $(which python3)"
-    echo "venv:    ${VIRTUAL_ENV:-none}"
-    echo "conda:   ${CONDA_DEFAULT_ENV:-none}"
+    echo "──────────────────────────────"
+    echo " Python env info"
+    echo "──────────────────────────────"
+    echo " Python:  $(python3 --version 2>/dev/null || echo 'not found')"
+    echo " uv:      $(uv --version 2>/dev/null || echo 'not found')"
+    echo " which:   $(which python3 2>/dev/null || echo 'not found')"
+    echo " venv:    ${VIRTUAL_ENV:-none}"
+    echo " conda:   ${CONDA_DEFAULT_ENV:-none}"
+    echo " project: $(python3 -c 'import tomllib; d=tomllib.load(open("pyproject.toml","rb")); print(d["project"]["name"])' 2>/dev/null || echo 'none')"
+    echo " tools:   $(uv tool list 2>/dev/null | wc -l) installed"
+    echo "──────────────────────────────"
 }
 
-# fzf — enhanced fuzzy searching
-# Ctrl+R — fuzzy history search (overrides default)
+# up — update everything in one command
+up() {
+    echo "── apt ──────────────────────"
+    sudo apt update && sudo apt full-upgrade -y && sudo apt autoremove -y
+    echo "── uv tools ─────────────────"
+    uv tool upgrade --all
+    echo "── pre-commit ───────────────"
+    pre-commit autoupdate 2>/dev/null || true
+    echo "── setup scripts ────────────"
+    bash ~/linux_setup/update.sh
+    echo "── done ─────────────────────"
+}
+
+# venv-here — create and activate venv in current dir
+venv-here() {
+    local python="${1:-3.12}"
+    uv venv --python "$python"
+    source .venv/bin/activate
+    echo "Venv active (Python $python) — 'da' to deactivate"
+}
+
+# weather — terminal weather
+weather() {
+    local location="${1:-}"
+    curl -s "wttr.in/${location}?format=3" && echo ""
+}
+
+# fzf — enhanced fuzzy config
 if command -v fzf &>/dev/null; then
     eval "$(fzf --bash 2>/dev/null)" || true
-
-    # fd as fzf backend
     export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
     export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
@@ -184,12 +463,42 @@ if command -v fzf &>/dev/null; then
         --preview "bat --color=always --line-range :50 {}"
         --preview-window=right:50%:wrap
     '
+
+    # fzf helpers
+    # fh — fuzzy search command history and run selected
+    fh() {
+        local cmd
+        cmd=$(history | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' | sort -u | fzf --tac)
+        [[ -n "$cmd" ]] && eval "$cmd"
+    }
+
+    # fkill — fuzzy kill process
+    fkill() {
+        local pid
+        pid=$(ps aux | fzf --header='Select process to kill' | awk '{print $2}')
+        [[ -n "$pid" ]] && kill -9 "$pid" && echo "Killed $pid"
+    }
+
+    # fcd — fuzzy cd into any directory
+    fcd() {
+        local dir
+        dir=$(fd --type d --hidden --exclude .git | fzf --preview 'ls {}')
+        [[ -n "$dir" ]] && cd "$dir"
+    }
+
+    # fopen — fuzzy open file in editor
+    fopen() {
+        local file
+        file=$(fzf --preview 'bat --color=always {}')
+        [[ -n "$file" ]] && $EDITOR "$file"
+    }
 fi
 
-# ── Welcome message ───────────────────────────────────────────────────────────
-# Uncomment if you want a summary on each new terminal
-# echo ""
-# echo "  Python: $(python3 --version 2>/dev/null)"
-# echo "  uv:     $(uv --version 2>/dev/null)"
-# echo "  Conda:  ${CONDA_DEFAULT_ENV:-none}"
-# echo ""
+# ── mamba / conda — fallback for conda-only packages ─────────────────────────
+# Use only when packages genuinely unavailable on PyPI (gdal, rasterio etc.)
+alias ca='mamba activate'
+alias cda='mamba deactivate'
+alias cl='mamba env list'
+alias cc='mamba create -n'
+alias ci='mamba install'
+alias cu='mamba update --all'
