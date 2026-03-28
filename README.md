@@ -8,12 +8,7 @@ Automated Python dev environment setup for Chromebook (Crostini) and any Debian/
 
 ### Chromebook
 ```bash
-# Download all scripts (all three needed)
-curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/chromebook_setup.sh -o chromebook_setup.sh
-curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/linux_setup.sh -o linux_setup.sh
-curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/chromebook_crostini.sh -o chromebook_crostini.sh
-
-bash chromebook_setup.sh
+curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/bootstrap.sh | bash
 ```
 
 ### Any Debian/Ubuntu machine
@@ -26,10 +21,6 @@ curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/linux_
 curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/terminal_setup.sh | bash
 ```
 
-> **Note:** Update `REPO_RAW` at the top of `terminal_setup.sh` to point at your own repo before running.
-
----
-
 ## Scripts
 
 | Script | Purpose | Run on |
@@ -38,6 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/termin
 | `linux_setup.sh` | Portable core — Python, tools, Git, Docker | Any Debian/Ubuntu |
 | `chromebook_crostini.sh` | Crostini extras — display fix, ChromeOS aliases | Chromebook only |
 | `terminal_setup.sh` | Starship, bash config, tmux, editor configs | Any machine |
+| `bootstrap.sh` | Downloads all scripts and configs, then runs `chromebook_setup.sh` | Chromebook only |
 
 All scripts are **idempotent** — safe to re-run, skips anything already installed.
 
