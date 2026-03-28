@@ -1,1 +1,195 @@
+# =============================================================================
+# ~/.bashrc_extras — aliases, functions, exports
+# Sourced by ~/.bashrc. Edit here, not in .bashrc directly.
+# =============================================================================
 
+# ── History ───────────────────────────────────────────────────────────────────
+export HISTSIZE=100000
+export HISTFILESIZE=100000
+export HISTCONTROL=ignoredups:erasedups     # no duplicate entries
+export HISTIGNORE="ls:ll:cd:pwd:exit:clear" # skip trivial commands
+shopt -s histappend                          # append rather than overwrite
+PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
+
+# ── Core behaviour ────────────────────────────────────────────────────────────
+export EDITOR=micro
+export VISUAL=micro
+export PAGER=less
+export LESS="-R --quit-if-one-screen --no-init"
+
+# ── Path ──────────────────────────────────────────────────────────────────────
+export PATH="$HOME/.local/bin:$PATH"
+
+# ── ls ────────────────────────────────────────────────────────────────────────
+alias ls='ls --color=auto --group-directories-first'
+alias ll='ls -lah --color=auto --group-directories-first'
+alias la='ls -A --color=auto'
+alias l='ls -CF'
+alias lt='ls -laht'          # sorted by time
+alias lS='ls -lahS'          # sorted by size
+
+# ── Navigation ────────────────────────────────────────────────────────────────
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias ~='cd ~'
+alias -- -='cd -'            # jump to previous directory
+
+# ── Safety ────────────────────────────────────────────────────────────────────
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+alias mkdir='mkdir -pv'
+
+# ── Better defaults ───────────────────────────────────────────────────────────
+alias cat='bat --paging=never'      # bat as cat replacement
+alias less='bat'                    # bat as pager
+alias grep='grep --color=auto'
+alias df='duf'                      # better disk usage
+alias du='du -sh'
+alias free='free -h'
+alias diff='delta'                  # better diff
+alias find='fd'                     # better find
+alias top='htop'
+alias ps='ps auxf'
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+alias g='git'
+alias gs='git status'
+alias ga='git add'
+alias gaa='git add --all'
+alias gc='git commit -m'
+alias gca='git commit --amend'
+alias gp='git push'
+alias gpl='git pull'
+alias gd='git diff'
+alias gds='git diff --staged'
+alias gco='git checkout'
+alias gb='git branch'
+alias glog='git log --oneline --graph --decorate --all'
+alias lg='lazygit'
+
+# ── Python / uv ──────────────────────────────────────────────────────────────
+alias py='python3'
+alias python='python3'
+alias pip='uv pip'               # always use uv pip
+alias venv='uv venv .venv'       # create venv in current dir
+alias activate='source .venv/bin/activate'
+alias da='deactivate'
+alias uvr='uv run'               # run script in project env
+alias jl='jupyter lab'           # launch jupyter lab
+alias jn='jupyter notebook'
+
+# ── mamba / conda ─────────────────────────────────────────────────────────────
+alias ca='mamba activate'
+alias cda='mamba deactivate'
+alias cl='mamba env list'
+alias cc='mamba create -n'       # cc myenv python=3.12
+alias ci='mamba install'
+alias cu='mamba update --all'
+alias cr='mamba remove'
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+alias d='docker'
+alias dc='docker compose'
+alias dps='docker ps'
+alias dpsa='docker ps -a'
+alias di='docker images'
+alias dex='docker exec -it'
+alias dlogs='docker logs -f'
+alias dprune='docker system prune -af'
+
+# ── System ────────────────────────────────────────────────────────────────────
+alias update='sudo apt update && sudo apt full-upgrade -y && sudo apt autoremove -y'
+alias ports='ss -tulpn'
+alias path='echo $PATH | tr ":" "\n"'
+alias reload='source ~/.bashrc && echo "~/.bashrc reloaded"'
+alias bashrc='$EDITOR ~/.bashrc'
+alias bashext='$EDITOR ~/.bashrc_extras'
+
+# ── ChromeOS / Crostini ───────────────────────────────────────────────────────
+alias crdl='cd /mnt/chromeos/MyFiles/Downloads'
+alias crfiles='cd /mnt/chromeos/MyFiles'
+alias crgdrive='cd /mnt/chromeos/GoogleDrive/MyDrive'
+
+# ── Utility functions ─────────────────────────────────────────────────────────
+
+# mk — make dir and cd into it
+mk() { mkdir -p "$1" && cd "$1"; }
+
+# extract — handles most archive types
+extract() {
+    if [[ -f "$1" ]]; then
+        case "$1" in
+            *.tar.bz2)  tar xjf "$1"    ;;
+            *.tar.gz)   tar xzf "$1"    ;;
+            *.tar.xz)   tar xJf "$1"    ;;
+            *.tar.zst)  tar --zstd -xf "$1" ;;
+            *.bz2)      bunzip2 "$1"    ;;
+            *.gz)       gunzip "$1"     ;;
+            *.tar)      tar xf "$1"     ;;
+            *.tbz2)     tar xjf "$1"    ;;
+            *.tgz)      tar xzf "$1"    ;;
+            *.zip)      unzip "$1"      ;;
+            *.Z)        uncompress "$1" ;;
+            *.7z)       7z x "$1"       ;;
+            *)          echo "'$1' cannot be extracted" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# mkpy — scaffold a new Python project with uv
+mkpy() {
+    local name="${1:?Usage: mkpy <project-name>}"
+    mkdir -p "$name" && cd "$name"
+    uv venv .venv
+    source .venv/bin/activate
+    touch README.md .env .gitignore
+    echo ".venv/\n.env\n__pycache__/\n*.pyc\n.DS_Store" > .gitignore
+    git init && git add . && git commit -m "initial commit"
+    echo "Project '$name' ready. Venv active."
+}
+
+# serve — quick HTTP server in current directory
+serve() {
+    local port="${1:-8000}"
+    echo "Serving on http://localhost:$port"
+    python3 -m http.server "$port"
+}
+
+# pyinfo — show current Python environment info
+pyinfo() {
+    echo "Python:  $(python3 --version)"
+    echo "uv:      $(uv --version 2>/dev/null || echo 'not found')"
+    echo "which:   $(which python3)"
+    echo "venv:    ${VIRTUAL_ENV:-none}"
+    echo "conda:   ${CONDA_DEFAULT_ENV:-none}"
+}
+
+# fzf — enhanced fuzzy searching
+# Ctrl+R — fuzzy history search (overrides default)
+if command -v fzf &>/dev/null; then
+    eval "$(fzf --bash 2>/dev/null)" || true
+
+    # fd as fzf backend
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+    export FZF_DEFAULT_OPTS='
+        --height=40%
+        --layout=reverse
+        --border
+        --preview "bat --color=always --line-range :50 {}"
+        --preview-window=right:50%:wrap
+    '
+fi
+
+# ── Welcome message ───────────────────────────────────────────────────────────
+# Uncomment if you want a summary on each new terminal
+# echo ""
+# echo "  Python: $(python3 --version 2>/dev/null)"
+# echo "  uv:     $(uv --version 2>/dev/null)"
+# echo "  Conda:  ${CONDA_DEFAULT_ENV:-none}"
+# echo ""
