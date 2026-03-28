@@ -1,4 +1,4 @@
-# linxu_setup
+# linux_setup
 
 Automated Python dev environment setup for Chromebook (Crostini) and any Debian/Ubuntu machine.
 
