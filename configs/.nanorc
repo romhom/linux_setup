@@ -1,0 +1,21 @@
+# =============================================================================
+# ~/.nanorc — nano configuration
+# =============================================================================
+
+set mouse
+set linenumbers
+set autoindent
+set tabsize 4
+set tabstospaces
+set softwrap
+set titlebar
+set constantshow        # show cursor position in status bar
+set indicator           # show scroll position on right
+set minibar             # compact file info bar
+set zap                 # delete selected text on keypress
+set smarthome           # home key goes to first non-whitespace char
+set afterends           # Ctrl+Right stops at end of words not beginning
+
+# Syntax highlighting — pulls in all installed nanorc syntax files
+include "/usr/share/nano/*.nanorc"
+include "/usr/share/nano/extra/*.nanorc"
