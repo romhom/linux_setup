@@ -1,0 +1,18 @@
+{
+    "tabsize": 4,
+    "tabstospaces": true,
+    "autoindent": true,
+    "mouse": true,
+    "ruler": true,
+    "softwrap": true,
+    "colorscheme": "monokai",
+    "mkparents": true,
+    "savecursor": true,
+    "autoclose": true,
+    "comment": true,
+    "linter": true,
+    "diffgutter": true,
+    "scrollbar": true,
+    "clipboard": "external",
+    "statusformatr": "$(filename) $(modified)($(line),$(col)) $(opt:filetype) | $(opt:fileformat) | $(opt:encoding)"
+}
