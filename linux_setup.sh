@@ -395,8 +395,10 @@ fi
 
 # glow — markdown in terminal
 if ! command -v glow &>/dev/null; then
+    GLOW_VER=$(curl -s https://api.github.com/repos/charmbracelet/glow/releases/latest \
+        | grep tag_name | cut -d'"' -f4 | tr -d 'v')
     curl -fsSL \
-        "https://github.com/charmbracelet/glow/releases/latest/download/glow_Linux_x86_64.tar.gz" \
+        "https://github.com/charmbracelet/glow/releases/latest/download/glow_${GLOW_VER}_linux_amd64.tar.gz" \
         | tar -xz -C "$HOME/.local/bin" glow
     log "glow installed"
 else
