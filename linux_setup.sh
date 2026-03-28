@@ -79,7 +79,7 @@ sudo apt install -y \
     xdg-utils
 log "Core tools installed"
 
-# ── 4. Node.js + npm (via NodeSource LTS) ────────────────────────────────────
+# ── 3b. Node.js + npm (via NodeSource LTS) ──────────────────────────────────
 # Installs current LTS via NodeSource — much newer than the apt default.
 section "Node.js + npm"
 if ! command -v node &>/dev/null; then
@@ -109,20 +109,34 @@ else
     warn "Node.js already installed ($(node --version)) — skipping"
 fi
 
+# Source npm global path into current script session unconditionally
+# (only runs inside if-block on fresh install, so set it here for re-runs too)
+export PATH="$HOME/.npm-global/bin:$PATH"
+
 # ── 4. Python Core ────────────────────────────────────────────────────────────
 section "Python Core"
+# uv manages Python versions — remove packages that conflict with uv
+PYTHON_REDUNDANT=(python3-pip python3-venv python3-dev)
+for pkg in "${PYTHON_REDUNDANT[@]}"; do
+    if dpkg -l "$pkg" &>/dev/null 2>&1; then
+        sudo apt remove -y "$pkg"
+        log "Removed $pkg (replaced by uv)"
+    fi
+done
+
+# Keep: system Python (required by system tools), Tk, and build/link deps
 sudo apt install -y \
     python3 \
-    python3-pip \
-    python3-venv \
-    python3-dev \
     python3-tk \
     libpq-dev \
     libssl-dev \
     libffi-dev
-log "Python 3 installed: $(python3 --version)"
+log "Python core ready (system: $(python3 --version))"
+log "Python versions managed by uv — run \'uv python list\' to see available"
 
-# ── 5. uv ─────────────────────────────────────────────────────────────────────
+# ── 5. uv + Python version management ───────────────────────────────────────
+# uv is the primary Python manager — handles versions, venvs, and packages.
+# Miniforge/mamba is a fallback for conda-only packages (gdal, rasterio etc.)
 section "uv"
 if ! command -v uv &>/dev/null; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -132,20 +146,18 @@ if ! command -v uv &>/dev/null; then
 export PATH="$HOME/.local/bin:$PATH"
 eval "$(uv generate-shell-completion bash)"
 EOF
-    export PATH="$HOME/.local/bin:$PATH"
-    log "uv installed: $(uv --version)"
+    log "uv installed"
 else
     warn "uv already installed — skipping"
 fi
 
-# ── 6. uv — Python version management ────────────────────────────────────────
-# uv is the primary Python manager — handles versions, venvs, and packages.
-# Miniforge/mamba is installed separately as a fallback for conda-only packages
-# (gdal, rasterio, complex C deps) that don't exist on PyPI.
-section "uv Python"
+# Source uv into current script session so it's usable immediately
 export PATH="$HOME/.local/bin:$PATH"
+# Also source uv env file if present (written by installer)
+[[ -f "$HOME/.local/bin/env" ]] && source "$HOME/.local/bin/env"
+log "uv active: $(uv --version)"
 uv python install 3.12
-log "Python 3.12 installed via uv: $(uv python find 3.12)"
+log "Python 3.12 ready: $(uv python find 3.12)"
 
 # ── 7. Miniforge / mamba (conda fallback) ────────────────────────────────────
 # Use mamba only for packages unavailable on PyPI.
@@ -170,6 +182,13 @@ EOF
 else
     warn "Miniforge already installed — skipping"
 fi
+
+# Source conda/mamba into current script session so they're usable immediately
+CONDA_PROFILE="$HOME/miniforge3/etc/profile.d/conda.sh"
+MAMBA_PROFILE="$HOME/miniforge3/etc/profile.d/mamba.sh"
+[[ -f "$CONDA_PROFILE" ]] && source "$CONDA_PROFILE" && export CONDA_AUTO_ACTIVATE_BASE=false
+[[ -f "$MAMBA_PROFILE" ]] && source "$MAMBA_PROFILE"
+command -v mamba &>/dev/null && log "mamba active: $(mamba --version | head -1)"
 
 # ── 8. direnv — automatic environment activation ──────────────────────────────
 section "direnv"
@@ -200,9 +219,9 @@ UV_QUALITY=(
 )
 
 # ── Testing ───────────────────────────────────────────────────────────────────
+# Note: pytest-cov has no CLI executable — install per-project via uv add --dev
 UV_TESTING=(
     pytest          # test runner
-    pytest-cov      # coverage reporting
     hypothesis      # property-based testing
     nox             # test automation across Python versions
     tox             # test automation (alternative to nox)
@@ -218,19 +237,20 @@ UV_WORKFLOW=(
 )
 
 # ── REPL and debugging ────────────────────────────────────────────────────────
+# Note: pdb-plus not on PyPI — use ipdb instead
 UV_REPL=(
     ipython         # enhanced Python REPL
     ptpython        # alternative REPL with auto-complete
-    pdb-plus        # enhanced debugger
+    ipdb            # enhanced debugger (drop-in pdb replacement)
     rich-cli        # rich text/markdown/JSON in terminal
 )
 
 # ── Data and files ────────────────────────────────────────────────────────────
+# Note: pyarrow has no CLI — install per-project via uv add pyarrow
 UV_DATA=(
     csvkit          # csvstat, csvcut, csvsql — query CSVs like a DB
     visidata        # terminal spreadsheet/data explorer (vd command)
-    duckdb          # fast analytical SQL — works on CSV, Parquet, JSON
-    pyarrow         # Arrow/Parquet support
+    duckdb-cli      # fast analytical SQL — works on CSV, Parquet, JSON
 )
 
 # ── HTTP and APIs ─────────────────────────────────────────────────────────────
@@ -240,19 +260,18 @@ UV_HTTP=(
 )
 
 # ── Docs ──────────────────────────────────────────────────────────────────────
+# Note: mkdocs-material has no standalone CLI — install via uv add --dev mkdocs-material
 UV_DOCS=(
-    mkdocs                      # project documentation site generator
-    "mkdocs-material"           # material theme for mkdocs
+    mkdocs          # project documentation site generator
 )
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
+# Note: pydantic and pendulum have no CLI — install per-project via uv add
 UV_UTILS=(
     pipdeptree      # show dependency tree for installed packages
     pip-audit       # audit deps for known vulnerabilities
     liccheck        # check dependency licences
     typer           # build CLIs from type hints
-    pydantic        # data validation — useful as a standalone tool
-    pendulum        # better datetime handling
 )
 
 # ── Install all groups ────────────────────────────────────────────────────────
@@ -338,21 +357,50 @@ else
 fi
 
 # delta — better git diff
+# Uses musl (statically linked) if glibc < 2.38, gnu otherwise.
+# Crostini/Debian Bookworm ships glibc 2.36 — musl required there.
 if ! command -v delta &>/dev/null; then
     DELTA_VER=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest \
         | grep tag_name | cut -d'"' -f4)
+
+    # Detect glibc version — musl is safer on anything below 2.38
+    GLIBC_VER=$(ldd --version 2>/dev/null | head -1 | grep -oP '\d+\.\d+$' || echo "0.0")
+    GLIBC_MAJOR=$(echo "$GLIBC_VER" | cut -d. -f1)
+    GLIBC_MINOR=$(echo "$GLIBC_VER" | cut -d. -f2)
+
+    if [[ "$GLIBC_MAJOR" -gt 2 ]] || [[ "$GLIBC_MAJOR" -eq 2 && "$GLIBC_MINOR" -ge 38 ]]; then
+        DELTA_BUILD="x86_64-unknown-linux-gnu"
+        info "glibc ${GLIBC_VER} detected — using gnu delta build"
+    else
+        DELTA_BUILD="x86_64-unknown-linux-musl"
+        info "glibc ${GLIBC_VER} detected — using musl delta build (statically linked)"
+    fi
+
     curl -fsSL \
-        "https://github.com/dandavison/delta/releases/latest/download/delta-${DELTA_VER}-x86_64-unknown-linux-gnu.tar.gz" \
+        "https://github.com/dandavison/delta/releases/latest/download/delta-${DELTA_VER}-${DELTA_BUILD}.tar.gz" \
         | tar -xz --strip-components=1 -C "$HOME/.local/bin" \
-          "delta-${DELTA_VER}-x86_64-unknown-linux-gnu/delta"
+          "delta-${DELTA_VER}-${DELTA_BUILD}/delta"
     git config --global core.pager delta
     git config --global delta.navigate true
     git config --global delta.line-numbers true
     git config --global delta.syntax-theme "Monokai Extended"
     git config --global interactive.diffFilter "delta --color-only"
-    log "delta installed"
+    log "delta installed (${DELTA_BUILD})"
 else
-    warn "delta already installed — skipping"
+    # Check existing delta still works — replace with musl if glibc mismatch
+    if ! delta --version &>/dev/null 2>&1; then
+        warn "delta binary broken (likely glibc mismatch) — reinstalling musl build"
+        rm -f "$HOME/.local/bin/delta"
+        DELTA_VER=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest \
+            | grep tag_name | cut -d'"' -f4)
+        curl -fsSL \
+            "https://github.com/dandavison/delta/releases/latest/download/delta-${DELTA_VER}-x86_64-unknown-linux-musl.tar.gz" \
+            | tar -xz --strip-components=1 -C "$HOME/.local/bin" \
+              "delta-${DELTA_VER}-x86_64-unknown-linux-musl/delta"
+        log "delta reinstalled (musl build)"
+    else
+        warn "delta already installed — skipping"
+    fi
 fi
 
 # duf — better df
@@ -418,9 +466,6 @@ if ! command -v hyperfine &>/dev/null; then
 else
     warn "hyperfine already installed — skipping"
 fi
-
-# csvkit — CSV tooling
-uv tool install csvkit 2>/dev/null && log "csvkit installed" || warn "csvkit failed — skipping"
 
 # ── 9c. GUI Applications ──────────────────────────────────────────────────────
 section "GUI Applications"
@@ -510,38 +555,92 @@ else
     warn "Docker already installed — skipping"
 fi
 
-# ── 14. Editor Config ─────────────────────────────────────────────────────────
-section "Editor Config"
+# ── 14. Azure CLI ─────────────────────────────────────────────────────────────
+# Installs from Microsoft's apt repo. Bundles its own Python — no uv conflict.
+section "Azure CLI"
+if ! command -v az &>/dev/null; then
+    sudo mkdir -p /etc/apt/keyrings
+    curl -sLS https://packages.microsoft.com/keys/microsoft.asc \
+        | gpg --dearmor \
+        | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+    sudo chmod go+r /etc/apt/keyrings/microsoft.gpg
 
-cat > "$HOME/.nanorc" <<'EOF'
-set mouse
-set linenumbers
-set autoindent
-set tabsize 4
-set tabstospaces
-set softwrap
-set titlebar
-set constantshow
-include "/usr/share/nano/*.nanorc"
-EOF
-log "nano configured"
+    # Use distro codename — falls back to bookworm for Crostini/Debian
+    AZ_DIST="${DISTRO_CODENAME}"
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] \
+        https://packages.microsoft.com/repos/azure-cli/ ${AZ_DIST} main" \
+        | sudo tee /etc/apt/sources.list.d/azure-cli.list > /dev/null
 
-MICRO_CFG="$HOME/.config/micro"
-mkdir -p "$MICRO_CFG"
-cat > "$MICRO_CFG/settings.json" <<'EOF'
-{
-    "tabsize": 4,
-    "tabstospaces": true,
-    "autoindent": true,
-    "mouse": true,
-    "ruler": true,
-    "softwrap": true,
-    "colorscheme": "monokai"
+    sudo apt update && sudo apt install -y azure-cli
+    log "Azure CLI installed: $(az --version 2>/dev/null | head -1)"
+    info "Run 'az login' to authenticate"
+else
+    warn "Azure CLI already installed ($(az --version 2>/dev/null | head -1)) — skipping"
+fi
+
+
+# ── 15. CUDA Toolkit ──────────────────────────────────────────────────────────
+# CUDA requires a real NVIDIA GPU with hardware passthrough.
+# Crostini uses VirGL (virtualised GPU) — CUDA is not possible there.
+# This section auto-detects Crostini and skips; runs on bare-metal Linux only.
+section "CUDA"
+
+_is_crostini() {
+    [[ -f /etc/cros_chroot_config ]] || \
+    grep -qi "cros\|chromeos\|penguin" /proc/version 2>/dev/null || \
+    [[ "$(hostname)" == "penguin" ]]
 }
-EOF
-log "micro configured"
 
-# ── 15. PATH ──────────────────────────────────────────────────────────────────
+if _is_crostini; then
+    warn "Crostini detected — CUDA requires real GPU passthrough, skipping"
+    warn "For GPU ML workloads use Azure ML, Colab, or a bare-metal Linux machine"
+elif ! command -v nvidia-smi &>/dev/null; then
+    warn "No NVIDIA GPU detected (nvidia-smi not found) — skipping CUDA"
+    warn "To install manually on a machine with an NVIDIA GPU, re-run with: INSTALL_CUDA=1 bash linux_setup.sh"
+else
+    # NVIDIA GPU confirmed — install CUDA toolkit
+    CUDA_DISTRO="${DISTRO_ID}${DISTRO_CODENAME}"   # e.g. debian12, ubuntu22.04
+
+    info "NVIDIA GPU detected: $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)"
+    info "Installing CUDA toolkit..."
+
+    # Add NVIDIA keyring and repo
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/${DISTRO_ID}$(lsb_release -sr | tr -d '.')/x86_64/cuda-keyring_1.1-1_all.deb" \
+        -o /tmp/cuda-keyring.deb 2>/dev/null \
+    && sudo apt install -y /tmp/cuda-keyring.deb \
+    && rm -f /tmp/cuda-keyring.deb \
+    || {
+        warn "CUDA repo setup failed — check https://developer.nvidia.com/cuda-downloads for manual install"
+    }
+
+    sudo apt update
+    # Install toolkit only (not drivers — those should already be installed)
+    sudo apt install -y cuda-toolkit
+    log "CUDA toolkit installed: $(nvcc --version 2>/dev/null | grep release | awk '{print $6}')"
+
+    # Add CUDA to PATH
+    if ! grep -q "cuda" "$BASHRC"; then
+        cat >> "$BASHRC" <<'EOF'
+
+# ── CUDA ──────────────────────────────────────────────────────────────────────
+export PATH="/usr/local/cuda/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+EOF
+        export PATH="/usr/local/cuda/bin:$PATH"
+        export LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-}"
+        log "CUDA paths added to .bashrc"
+    fi
+
+    # Verify
+    if command -v nvcc &>/dev/null; then
+        log "CUDA ready: $(nvcc --version 2>/dev/null | grep release)"
+        log "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null)"
+    fi
+fi
+
+# ── 16. PATH ──────────────────────────────────────────────────────────────────
+# Note: editor configs (nano, micro, starship, tmux) are applied by terminal_setup.sh
 section "PATH"
 if ! grep -q '\.local/bin' "$BASHRC"; then
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASHRC"
