@@ -11,7 +11,7 @@
 set -euo pipefail
 
 # ── Edit this to point at your repo ──────────────────────────────────────────
-REPO_RAW="https://raw.githubusercontent.com/YOURNAME/chromebook-setup/main"
+REPO_RAW="https://raw.githubusercontent.com/romhom/chromebook-setup/main"
 
 BASHRC="$HOME/.bashrc"
 
