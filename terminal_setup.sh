@@ -5,14 +5,10 @@
 #
 # Usage:
 #   bash terminal_setup.sh
-#
-# Set REPO_RAW below to your own GitHub raw content URL.
 # =============================================================================
 set -euo pipefail
 
-# ── Edit this to point at your repo ──────────────────────────────────────────
 REPO_RAW="https://raw.githubusercontent.com/romhom/linux_setup/main"
-
 BASHRC="$HOME/.bashrc"
 
 # ── Colours ───────────────────────────────────────────────────────────────────
@@ -26,25 +22,37 @@ section() { echo -e "\n${BOLD}${CYAN}══ $* ══${RESET}\n"; }
 die()     { echo -e "${RED}[✘] $*${RESET}" >&2; exit 1; }
 
 fetch() {
-    # fetch <remote_path> <local_dest>
     local url="$REPO_RAW/$1"
     local dest="$2"
     mkdir -p "$(dirname "$dest")"
     curl -fsSL "$url" -o "$dest" || die "Failed to fetch $url"
-    log "$(basename "$dest") installed → $dest"
+    log "$(basename "$dest") → $dest"
 }
 
 # ── Preflight ─────────────────────────────────────────────────────────────────
 [[ "$EUID" -eq 0 ]] && die "Do not run as root."
-command -v curl >/dev/null || die "curl not found — run linux_setup.sh first"
+command -v curl    >/dev/null || die "curl not found — run linux_setup.sh first"
+command -v git     >/dev/null || die "git not found — run linux_setup.sh first"
+command -v tmux    >/dev/null || die "tmux not found — run linux_setup.sh first"
+command -v unzip   >/dev/null || die "unzip not found — run linux_setup.sh first"
+
+# Ensure ~/.local/bin is on PATH (needed if running standalone before new shell)
+export PATH="$HOME/.local/bin:$PATH"
+
+# Verify repo is reachable before doing anything
+curl -fsSL --head "$REPO_RAW/configs/starship.toml" > /dev/null 2>&1 \
+    || die "Cannot reach $REPO_RAW — check internet and repo visibility"
 
 # ── 1. Starship prompt ────────────────────────────────────────────────────────
 section "Starship Prompt"
 if ! command -v starship &>/dev/null; then
-    curl -fsSL https://starship.rs/install.sh | sh -s -- --yes
+    # Install to ~/.local/bin to avoid sudo password prompt
+    mkdir -p "$HOME/.local/bin"
+    curl -fsSL https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+    command -v starship >/dev/null || die "Starship install failed — binary not found"
     log "Starship installed: $(starship --version)"
 else
-    warn "Starship already installed — skipping"
+    warn "Starship already installed ($(starship --version)) — skipping"
 fi
 
 # Pull starship config
@@ -106,16 +114,25 @@ section "Nerd Font"
 FONT_DIR="$HOME/.local/share/fonts"
 mkdir -p "$FONT_DIR"
 
+# Ensure fontconfig is available
+if ! command -v fc-list &>/dev/null; then
+    sudo apt install -y fontconfig
+fi
+
 if ! fc-list | grep -qi "JetBrainsMono Nerd"; then
-    info "Downloading JetBrainsMono Nerd Font..."
+    info "Downloading JetBrainsMono Nerd Font (~50MB)..."
     FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip"
-    curl -fsSL "$FONT_URL" -o /tmp/JetBrainsMono.zip
-    unzip -o /tmp/JetBrainsMono.zip -d "$FONT_DIR/JetBrainsMono" '*.ttf' 2>/dev/null
-    rm /tmp/JetBrainsMono.zip
-    fc-cache -fv "$FONT_DIR" > /dev/null
-    log "JetBrainsMono Nerd Font installed"
-    warn "Set your terminal font to 'JetBrainsMono Nerd Font' for Starship symbols"
-    warn "Chromebook: open Terminal → Settings → Appearance → Custom font"
+    if curl -fsSL "$FONT_URL" -o /tmp/JetBrainsMono.zip; then
+        unzip -o /tmp/JetBrainsMono.zip -d "$FONT_DIR/JetBrainsMono" '*.ttf' 2>/dev/null || true
+        rm -f /tmp/JetBrainsMono.zip
+        fc-cache -f "$FONT_DIR" > /dev/null
+        log "JetBrainsMono Nerd Font installed"
+        warn "Set terminal font to 'JetBrainsMono Nerd Font' for Starship symbols"
+        warn "Chromebook: Terminal → Settings → Appearance → Custom font"
+    else
+        warn "Font download failed — Starship will work but symbols may not render correctly"
+        warn "Install manually: https://www.nerdfonts.com/font-downloads"
+    fi
 else
     warn "JetBrainsMono Nerd Font already installed — skipping"
 fi
@@ -130,6 +147,7 @@ echo "  ✔ nano configured"
 echo "  ✔ micro configured"
 echo "  ✔ JetBrainsMono Nerd Font installed"
 echo -e "${RESET}"
-warn "Restart your terminal to apply all changes."
-warn "Then set terminal font to 'JetBrainsMono Nerd Font' in Terminal settings."
+warn "Run: source ~/.bashrc   (or restart your terminal)"
+warn "Then: set terminal font to 'JetBrainsMono Nerd Font' in Terminal settings"
+warn "Then: open tmux and press prefix + I to install plugins"
 echo ""
