@@ -4,12 +4,12 @@
 # Downloads all scripts and configs, then runs the full setup.
 #
 # One-liner:
-#   curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/bootstrap.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/bootstrap.sh | bash
 # =============================================================================
 set -euo pipefail
 
-REPO_RAW="https://raw.githubusercontent.com/romhom/chromebook-setup/main"
-DEST="$HOME/chromebook-setup"
+REPO_RAW="https://raw.githubusercontent.com/romhom/linux_setup/main"
+DEST="$HOME/linux_setup"
 
 BOLD='\033[1m'; CYAN='\033[0;36m'; GREEN='\033[0;32m'; RESET='\033[0m'
 
@@ -24,7 +24,7 @@ fetch() {
     log "$path"
 }
 
-section "Bootstrapping chromebook-setup"
+section "Bootstrapping linux_setup"
 echo "  Fetching scripts from: $REPO_RAW"
 echo "  Installing to:         $DEST"
 echo ""
