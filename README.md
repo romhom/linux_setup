@@ -9,21 +9,21 @@ Automated Python dev environment setup for Chromebook (Crostini) and any Debian/
 ### Chromebook
 ```bash
 # Download all scripts (all three needed)
-curl -fsSL https://raw.githubusercontent.com/YOURNAME/chromebook-setup/main/chromebook_setup.sh -o chromebook_setup.sh
-curl -fsSL https://raw.githubusercontent.com/YOURNAME/chromebook-setup/main/linux_setup.sh -o linux_setup.sh
-curl -fsSL https://raw.githubusercontent.com/YOURNAME/chromebook-setup/main/chromebook_crostini.sh -o chromebook_crostini.sh
+curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/chromebook_setup.sh -o chromebook_setup.sh
+curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/linux_setup.sh -o linux_setup.sh
+curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/chromebook_crostini.sh -o chromebook_crostini.sh
 
 bash chromebook_setup.sh
 ```
 
 ### Any Debian/Ubuntu machine
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOURNAME/chromebook-setup/main/linux_setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/linux_setup.sh | bash
 ```
 
 ### Terminal config (run after either of the above)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOURNAME/chromebook-setup/main/terminal_setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/chromebook-setup/main/terminal_setup.sh | bash
 ```
 
 > **Note:** Update `REPO_RAW` at the top of `terminal_setup.sh` to point at your own repo before running.
@@ -110,7 +110,7 @@ mkdir ~/chromebook-setup && cd ~/chromebook-setup
 git init
 # copy scripts and configs in, then:
 git add . && git commit -m "initial"
-git remote add origin git@github.com:YOURNAME/chromebook-setup.git
+git remote add origin git@github.com:romhom/chromebook-setup.git
 git push -u origin main
 ```
 
