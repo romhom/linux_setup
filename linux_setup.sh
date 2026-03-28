@@ -79,6 +79,36 @@ sudo apt install -y \
     xdg-utils
 log "Core tools installed"
 
+# ── 4. Node.js + npm (via NodeSource LTS) ────────────────────────────────────
+# Installs current LTS via NodeSource — much newer than the apt default.
+section "Node.js + npm"
+if ! command -v node &>/dev/null; then
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    sudo apt install -y nodejs
+    log "Node.js installed: $(node --version)  npm: $(npm --version)"
+
+    # npm global path — avoid needing sudo for global installs
+    mkdir -p "$HOME/.npm-global"
+    npm config set prefix "$HOME/.npm-global"
+    cat >> "$BASHRC" <<'EOF'
+
+# ── npm global (no sudo) ──────────────────────────────────────────────────────
+export PATH="$HOME/.npm-global/bin:$PATH"
+EOF
+    export PATH="$HOME/.npm-global/bin:$PATH"
+
+    # Useful global npm tools
+    npm install -g \
+        npx \
+        prettier \
+        typescript \
+        ts-node \
+        nodemon
+    log "Global npm tools installed"
+else
+    warn "Node.js already installed ($(node --version)) — skipping"
+fi
+
 # ── 4. Python Core ────────────────────────────────────────────────────────────
 section "Python Core"
 sudo apt install -y \
@@ -108,8 +138,19 @@ else
     warn "uv already installed — skipping"
 fi
 
-# ── 6. Miniforge / mamba ──────────────────────────────────────────────────────
-section "Miniforge / mamba"
+# ── 6. uv — Python version management ────────────────────────────────────────
+# uv is the primary Python manager — handles versions, venvs, and packages.
+# Miniforge/mamba is installed separately as a fallback for conda-only packages
+# (gdal, rasterio, complex C deps) that don't exist on PyPI.
+section "uv Python"
+export PATH="$HOME/.local/bin:$PATH"
+uv python install 3.12
+log "Python 3.12 installed via uv: $(uv python find 3.12)"
+
+# ── 7. Miniforge / mamba (conda fallback) ────────────────────────────────────
+# Use mamba only for packages unavailable on PyPI.
+# Default workflow is uv — see .bashrc_extras for aliases.
+section "Miniforge / mamba (conda fallback)"
 MINIFORGE_DIR="$HOME/miniforge3"
 if [[ ! -d "$MINIFORGE_DIR" ]]; then
     info "Downloading Miniforge installer..."
@@ -122,48 +163,116 @@ if [[ ! -d "$MINIFORGE_DIR" ]]; then
     "$MINIFORGE_DIR/bin/conda" init bash
     cat >> "$BASHRC" <<'EOF'
 
-# ── mamba / conda ─────────────────────────────────────────────────────────────
+# ── mamba / conda (fallback for conda-only packages) ─────────────────────────
 export CONDA_AUTO_ACTIVATE_BASE=false
 EOF
-    log "Miniforge installed — mamba and conda available after terminal restart"
-    log "Usage: mamba create -n myenv python=3.12 && mamba activate myenv"
+    log "Miniforge installed — use mamba only for conda-only packages"
 else
     warn "Miniforge already installed — skipping"
 fi
 
-# ── 7. Python Dev Tools (via uv) ──────────────────────────────────────────────
-section "Python Dev Tools"
-export PATH="$HOME/.local/bin:$PATH"
+# ── 8. direnv — automatic environment activation ──────────────────────────────
+section "direnv"
+if ! command -v direnv &>/dev/null; then
+    sudo apt install -y direnv
+    cat >> "$BASHRC" <<'EOF'
 
-UV_TOOLS=(
-    black          # formatter
-    isort          # import sorter
-    ruff           # fast linter
-    mypy           # type checker
-    pytest         # testing
-    ipython        # enhanced REPL
-    poetry         # dependency management
-    pre-commit     # git hook manager
-    cookiecutter   # project templates
-    httpie         # HTTP client
+# ── direnv ────────────────────────────────────────────────────────────────────
+eval "$(direnv hook bash)"
+EOF
+    log "direnv installed — add .envrc to any project for auto-activation"
+else
+    warn "direnv already installed — skipping"
+fi
+
+# ── 9. Global Python Tools (via uv tool install) ──────────────────────────────
+# These are installed as isolated global CLI tools — available everywhere,
+# not tied to any project venv. Use 'uv tool list' to see installed tools.
+section "Global Python Tools"
+
+# ── Code quality ──────────────────────────────────────────────────────────────
+UV_QUALITY=(
+    ruff            # linter + formatter — replaces black, isort, flake8, pylint
+    mypy            # static type checker
+    pyright         # Microsoft type checker (alternative to mypy)
+    bandit          # security linter — finds common security issues
+    vulture         # finds dead/unused code
 )
-for tool in "${UV_TOOLS[@]}"; do
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+UV_TESTING=(
+    pytest          # test runner
+    pytest-cov      # coverage reporting
+    hypothesis      # property-based testing
+    nox             # test automation across Python versions
+    tox             # test automation (alternative to nox)
+)
+
+# ── Dev workflow ──────────────────────────────────────────────────────────────
+UV_WORKFLOW=(
+    pre-commit      # git hook manager
+    cookiecutter    # project scaffolding from templates
+    bump-my-version # semantic version bumping
+    twine           # publish packages to PyPI
+    build           # PEP 517 build frontend
+)
+
+# ── REPL and debugging ────────────────────────────────────────────────────────
+UV_REPL=(
+    ipython         # enhanced Python REPL
+    ptpython        # alternative REPL with auto-complete
+    pdb-plus        # enhanced debugger
+    rich-cli        # rich text/markdown/JSON in terminal
+)
+
+# ── Data and files ────────────────────────────────────────────────────────────
+UV_DATA=(
+    csvkit          # csvstat, csvcut, csvsql — query CSVs like a DB
+    visidata        # terminal spreadsheet/data explorer (vd command)
+    duckdb          # fast analytical SQL — works on CSV, Parquet, JSON
+    pyarrow         # Arrow/Parquet support
+)
+
+# ── HTTP and APIs ─────────────────────────────────────────────────────────────
+UV_HTTP=(
+    httpie          # friendly HTTP client (http POST example.com key=value)
+    posting         # TUI API client — better than httpie for complex requests
+)
+
+# ── Docs ──────────────────────────────────────────────────────────────────────
+UV_DOCS=(
+    mkdocs                      # project documentation site generator
+    "mkdocs-material"           # material theme for mkdocs
+)
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+UV_UTILS=(
+    pipdeptree      # show dependency tree for installed packages
+    pip-audit       # audit deps for known vulnerabilities
+    liccheck        # check dependency licences
+    typer           # build CLIs from type hints
+    pydantic        # data validation — useful as a standalone tool
+    pendulum        # better datetime handling
+)
+
+# ── Install all groups ────────────────────────────────────────────────────────
+ALL_UV_TOOLS=(
+    "${UV_QUALITY[@]}"
+    "${UV_TESTING[@]}"
+    "${UV_WORKFLOW[@]}"
+    "${UV_REPL[@]}"
+    "${UV_DATA[@]}"
+    "${UV_HTTP[@]}"
+    "${UV_DOCS[@]}"
+    "${UV_UTILS[@]}"
+)
+
+for tool in "${ALL_UV_TOOLS[@]}"; do
     info "Installing $tool..."
-    uv tool install "$tool" 2>/dev/null && log "$tool" || warn "$tool failed — skipping"
+    uv tool install "$tool" 2>/dev/null && log "$tool" || warn "$tool — skipping"
 done
 
-# ── 8. Common Python Packages ─────────────────────────────────────────────────
-section "Common Python Packages"
-uv pip install --system \
-    requests numpy pandas matplotlib scipy \
-    jupyter notebook ipykernel \
-    python-dotenv pydantic rich typer loguru \
-    2>/dev/null || \
-uv pip install \
-    requests numpy pandas matplotlib scipy \
-    jupyter notebook ipykernel \
-    python-dotenv pydantic rich typer loguru
-log "Common packages installed"
+log "Global Python tools installed — run 'uv tool list' to see all"
 
 # ── 9a. Terminal Utilities (apt) ──────────────────────────────────────────────
 section "Terminal Utilities"
@@ -174,6 +283,7 @@ sudo apt install -y \
     htop \
     tree \
     jq \
+    yq \
     fzf \
     ripgrep \
     fd-find \
