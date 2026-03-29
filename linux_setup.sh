@@ -342,7 +342,6 @@ sudo apt install -y \
     bc \
     units \
     whois
-curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
 log "Terminal utilities installed"
 
 # Debian renames bat and fd — alias them
