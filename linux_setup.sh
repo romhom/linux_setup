@@ -576,6 +576,7 @@ if ! command -v code &>/dev/null; then
     sudo DEBIAN_FRONTEND=noninteractive apt install -y "$TMP_DEB"
     rm -f "$TMP_DEB"
     log "VS Code installed"
+fi
 
 # ── 13. Docker ────────────────────────────────────────────────────────────────
 section "Docker"
