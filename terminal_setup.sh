@@ -90,11 +90,12 @@ log "Starship config set: $(basename "$STARSHIP_CFG" .toml)"
 # Guarantee PATH is at top of .bashrc before starship init is written
 # Without this, starship can't be found on a fresh shell
 if ! grep -q 'LINUX_SETUP_PATH' "$BASHRC"; then
-    {
-        printf '# LINUX_SETUP_PATH\nexport PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"\n\n'
-        cat "$BASHRC"
-    } > /tmp/.bashrc_tmp && mv /tmp/.bashrc_tmp "$BASHRC"
-    log "PATH guarantee prepended to .bashrc"
+    cat >> "$BASHRC" <<'EOF'
+
+# LINUX_SETUP_PATH
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
+EOF
+    log "PATH added to .bashrc"
 fi
 
 # Wire starship into .bashrc

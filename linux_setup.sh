@@ -30,11 +30,12 @@ DISTRO_CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
 # Must be first in .bashrc so every subsequent eval (starship, zoxide etc) 
 # can find binaries in ~/.local/bin on a fresh shell
 if ! grep -q 'LINUX_SETUP_PATH' "$BASHRC"; then
-    {
-        printf '# LINUX_SETUP_PATH\nexport PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"\n\n'
-        cat "$BASHRC"
-    } > /tmp/.bashrc_tmp && mv /tmp/.bashrc_tmp "$BASHRC"
-    log "PATH guarantee prepended to .bashrc"
+    cat >> "$BASHRC" <<'EOF'
+
+# LINUX_SETUP_PATH
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
+EOF
+    log "PATH added to .bashrc"
 fi
 
 # ── 1. Sources Preflight ──────────────────────────────────────────────────────
