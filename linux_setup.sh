@@ -194,6 +194,7 @@ if [[ ! -d "$MINIFORGE_DIR" ]]; then
     cat >> "$BASHRC" <<'EOF'
 
 # ── mamba / conda (fallback for conda-only packages) ─────────────────────────
+export MAMBA_ROOT_PREFIX="$HOME/miniforge3"
 export CONDA_AUTO_ACTIVATE_BASE=false
 EOF
     log "Miniforge installed — use mamba only for conda-only packages"
@@ -204,6 +205,7 @@ fi
 # Source conda/mamba into current script session so they're usable immediately
 CONDA_PROFILE="$HOME/miniforge3/etc/profile.d/conda.sh"
 MAMBA_PROFILE="$HOME/miniforge3/etc/profile.d/mamba.sh"
+export MAMBA_ROOT_PREFIX="$HOME/miniforge3"
 [[ -f "$CONDA_PROFILE" ]] && source "$CONDA_PROFILE" && export CONDA_AUTO_ACTIVATE_BASE=false
 [[ -f "$MAMBA_PROFILE" ]] && source "$MAMBA_PROFILE"
 command -v mamba &>/dev/null && log "mamba active: $(mamba --version | head -1)"
@@ -577,6 +579,8 @@ if ! command -v code &>/dev/null; then
     sudo DEBIAN_FRONTEND=noninteractive apt install -y "$TMP_DEB"
     rm -f "$TMP_DEB"
     log "VS Code installed"
+else
+    warn "VS Code already installed — skipping"   # ← this line was missing    
 fi
 
 # ── 13. Docker ────────────────────────────────────────────────────────────────
