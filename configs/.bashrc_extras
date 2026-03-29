@@ -297,6 +297,14 @@ bashrc-dedup() {
     echo "Removed $((before - after)) duplicate lines from .bashrc"
     echo "Run: source ~/.bashrc"
 }
+
+# ── Setup health check ────────────────────────────────────────────────────────
+# Add this to .bashrc_extras alongside the other utility functions
+
+setup-check() {
+    bash ~/linux_setup/install.sh --check
+}
+
 alias meminfo='free -h && echo "" && cat /proc/meminfo | grep -i mem'
 alias cpuinfo='lscpu'
 alias diskinfo='duf'
