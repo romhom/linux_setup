@@ -2,7 +2,7 @@
 # =============================================================================
 # Linux Core Setup — Debian/Ubuntu Python Dev Environment
 # Portable: works on any Debian/Ubuntu based machine
-# Called directly or via chromebook_setup.sh
+# Called directly or via install.sh
 # =============================================================================
 set -euo pipefail
 

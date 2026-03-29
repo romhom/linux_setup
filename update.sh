@@ -23,7 +23,7 @@ die()     { echo -e "${RED}[✘] $*${RESET}" >&2; exit 1; }
 
 # ── Preflight ─────────────────────────────────────────────────────────────────
 command -v curl >/dev/null || die "curl not found"
-curl -fsSL --head "$REPO_RAW/bootstrap.sh" > /dev/null 2>&1 \
+curl -fsSL --head "$REPO_RAW/install.sh" > /dev/null 2>&1 \
     || die "Cannot reach $REPO_RAW — check internet connection and repo visibility"
 
 # ── Fetch a file, report if changed ──────────────────────────────────────────

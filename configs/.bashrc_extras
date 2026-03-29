@@ -555,8 +555,6 @@ if command -v fzf &>/dev/null; then
         [[ -n "$file" ]] && $EDITOR "$file"
     }
 fi
-# ── atuin — smart shell history ───────────────────────────────────────────────
-[[ -f "$HOME/.atuin/bin/atuin" ]] && eval "$(atuin init bash)"
 
 # ── mamba / conda — fallback for conda-only packages ─────────────────────────
 # Use only when packages genuinely unavailable on PyPI (gdal, rasterio etc.)
