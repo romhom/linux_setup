@@ -8,7 +8,7 @@ Automated Python dev environment setup for Chromebook (Crostini) and any Debian/
 
 **One command — works on Chromebook and any Debian/Ubuntu machine:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh
 ```
 
 Platform is auto-detected. On Chromebook, Crostini-specific config is applied automatically.
