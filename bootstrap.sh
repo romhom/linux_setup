@@ -51,3 +51,4 @@ chmod +x "$DEST"/*.sh
 
 section "Running Setup"
 bash "$DEST/chromebook_setup.sh"
+bash "$DEST/terminal_setup.sh"
