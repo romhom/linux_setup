@@ -26,6 +26,17 @@ command -v apt >/dev/null || die "apt not found — is this a Debian/Ubuntu syst
 DISTRO_ID=$(. /etc/os-release && echo "$ID")
 DISTRO_CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
 
+# ── Guarantee PATH written first ──────────────────────────────────────────────
+# Must be first in .bashrc so every subsequent eval (starship, zoxide etc) 
+# can find binaries in ~/.local/bin on a fresh shell
+if ! grep -q 'LINUX_SETUP_PATH' "$BASHRC"; then
+    {
+        printf '# LINUX_SETUP_PATH\nexport PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"\n\n'
+        cat "$BASHRC"
+    } > /tmp/.bashrc_tmp && mv /tmp/.bashrc_tmp "$BASHRC"
+    log "PATH guarantee prepended to .bashrc"
+fi
+
 # ── 1. Sources Preflight ──────────────────────────────────────────────────────
 section "Sources Preflight"
 
@@ -144,7 +155,14 @@ if ! command -v uv &>/dev/null; then
 
 # ── uv ────────────────────────────────────────────────────────────────────────
 export PATH="$HOME/.local/bin:$PATH"
-eval "$(uv generate-shell-completion bash)"
+# Cache completion — regenerate only when uv version changes
+_UV_COMP="$HOME/.cache/uv-completion.bash"
+_UV_VER=$(uv --version 2>/dev/null || echo "none")
+if [[ ! -f "$_UV_COMP" ]] || ! grep -q "^# $_UV_VER" "$_UV_COMP" 2>/dev/null; then
+    mkdir -p "$(dirname "$_UV_COMP")"
+    { echo "# $_UV_VER"; uv generate-shell-completion bash; } > "$_UV_COMP"
+fi
+source "$_UV_COMP"
 EOF
     log "uv installed"
 else
@@ -159,7 +177,7 @@ log "uv active: $(uv --version)"
 uv python install 3.12
 log "Python 3.12 ready: $(uv python find 3.12)"
 
-# ── 7. Miniforge / mamba (conda fallback) ────────────────────────────────────
+# ── 6. Miniforge / mamba (conda fallback) ────────────────────────────────────
 # Use mamba only for packages unavailable on PyPI.
 # Default workflow is uv — see .bashrc_extras for aliases.
 section "Miniforge / mamba (conda fallback)"
@@ -190,7 +208,7 @@ MAMBA_PROFILE="$HOME/miniforge3/etc/profile.d/mamba.sh"
 [[ -f "$MAMBA_PROFILE" ]] && source "$MAMBA_PROFILE"
 command -v mamba &>/dev/null && log "mamba active: $(mamba --version | head -1)"
 
-# ── 8. direnv — automatic environment activation ──────────────────────────────
+# ── 7. direnv — automatic environment activation ──────────────────────────────
 section "direnv"
 if ! command -v direnv &>/dev/null; then
     sudo apt install -y direnv
@@ -204,7 +222,7 @@ else
     warn "direnv already installed — skipping"
 fi
 
-# ── 9. Global Python Tools (via uv tool install) ──────────────────────────────
+# ── 8. Global Python Tools (via uv tool install) ──────────────────────────────
 # These are installed as isolated global CLI tools — available everywhere,
 # not tied to any project venv. Use 'uv tool list' to see installed tools.
 section "Global Python Tools"
@@ -665,13 +683,6 @@ EOF
     fi
 fi
 
-# ── 16. PATH ──────────────────────────────────────────────────────────────────
-# Note: editor configs (nano, micro, starship, tmux) are applied by terminal_setup.sh
-section "PATH"
-if ! grep -q '\.local/bin' "$BASHRC"; then
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASHRC"
-    log ".local/bin added to PATH"
-fi
 
 # ── Deduplicate .bashrc ───────────────────────────────────────────────────────
 section "Cleaning .bashrc"

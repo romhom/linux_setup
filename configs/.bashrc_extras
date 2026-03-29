@@ -33,7 +33,7 @@ shopt -s checkwinsize   # update LINES/COLUMNS after each command
 # ── Bracketed paste fix ───────────────────────────────────────────────────────
 # Prevents %200 and %201 appearing when pasting in Crostini terminal
 bind 'set enable-bracketed-paste off'
-PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
+PROMPT_COMMAND="history -a; history -c; history -r${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 # ── Core behaviour ────────────────────────────────────────────────────────────
 export EDITOR=micro
@@ -87,18 +87,18 @@ alias ln='ln -i'
 
 # ── Better defaults ───────────────────────────────────────────────────────────
 alias cat='bat --paging=never'
-alias less='bat'
+alias bat='bat'           # bat already available directly
 alias grep='grep --color=auto'
 alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias df='duf'
-alias du='ncdu'              # interactive disk usage
+alias ncdu='ncdu'         # interactive disk usage
 alias dus='du -sh *'         # quick size summary of current dir
 alias free='free -h'
-alias diff='delta'
-alias find='fd'
+alias gdiff='delta'       # git-aware diff viewer
+alias ffd='fd'            # fd as explicit alias
 alias top='htop'
-alias ps='ps auxf'
+alias psa='ps auxf'       # full process tree when you want it
 alias md='glow'              # render markdown: md README.md
 
 # ── Clipboard ─────────────────────────────────────────────────────────────────
