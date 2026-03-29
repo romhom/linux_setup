@@ -101,11 +101,7 @@ if ! command -v node &>/dev/null; then
     # npm global path — avoid needing sudo for global installs
     mkdir -p "$HOME/.npm-global"
     npm config set prefix "$HOME/.npm-global"
-    cat >> "$BASHRC" <<'EOF'
 
-# ── npm global (no sudo) ──────────────────────────────────────────────────────
-export PATH="$HOME/.npm-global/bin:$PATH"
-EOF
     export PATH="$HOME/.npm-global/bin:$PATH"
 
     # Useful global npm tools
@@ -151,11 +147,17 @@ log "Python versions managed by uv — run \'uv python list\' to see available"
 section "uv"
 if ! command -v uv &>/dev/null; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
+    log "uv installed"
+else
+    warn "uv already installed — skipping"
+fi
+
+# Always ensure uv block is in .bashrc (covers pre-installed uv case)
+if ! grep -q '_UV_COMP' "$BASHRC"; then
     cat >> "$BASHRC" <<'EOF'
 
 # ── uv ────────────────────────────────────────────────────────────────────────
 export PATH="$HOME/.local/bin:$PATH"
-# Cache completion — regenerate only when uv version changes
 _UV_COMP="$HOME/.cache/uv-completion.bash"
 _UV_VER=$(uv --version 2>/dev/null || echo "none")
 if [[ ! -f "$_UV_COMP" ]] || ! grep -q "^# $_UV_VER" "$_UV_COMP" 2>/dev/null; then
@@ -164,9 +166,6 @@ if [[ ! -f "$_UV_COMP" ]] || ! grep -q "^# $_UV_VER" "$_UV_COMP" 2>/dev/null; th
 fi
 source "$_UV_COMP"
 EOF
-    log "uv installed"
-else
-    warn "uv already installed — skipping"
 fi
 
 # Source uv into current script session so it's usable immediately
@@ -331,7 +330,7 @@ sudo apt install -y \
     pv \
     dos2unix \
     entr \
-    watch \
+    procps \
     lsof \
     strace \
     net-tools \

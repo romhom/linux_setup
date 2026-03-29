@@ -86,7 +86,8 @@ alias mkdir='mkdir -pv'
 alias ln='ln -i'
 
 # ── Better defaults ───────────────────────────────────────────────────────────
-alias cat='bat --paging=never'
+# Only use bat when output is a terminal (not when piping)
+cat() { command bat --paging=never "$@" 2>/dev/null || command cat "$@"; }
 alias bat='bat'           # bat already available directly
 alias grep='grep --color=auto'
 alias egrep='egrep --color=auto'
