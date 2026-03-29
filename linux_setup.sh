@@ -684,19 +684,6 @@ EOF
 fi
 
 
-# ── Deduplicate .bashrc ───────────────────────────────────────────────────────
-section "Cleaning .bashrc"
-BEFORE=$(wc -l < "$BASHRC")
-awk '
-    /^[[:space:]]*$/ { print; next }
-    /^[[:space:]]*(esac|fi|done|then|do|else|elif)[[:space:]]*$/ { print; next }
-    !seen[$0]++ { print }
-' "$BASHRC" > /tmp/.bashrc_clean && mv /tmp/.bashrc_clean "$BASHRC"
-AFTER=$(wc -l < "$BASHRC")
-REMOVED=$((BEFORE - AFTER))
-[[ "$REMOVED" -gt 0 ]] && log "Removed $REMOVED duplicate lines from .bashrc" \
-                        || log ".bashrc already clean"
-
 # ── Done ──────────────────────────────────────────────────────────────────────
 section "Core Setup Complete"
 echo -e "${GREEN}${BOLD}"
