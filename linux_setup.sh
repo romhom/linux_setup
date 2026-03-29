@@ -571,12 +571,11 @@ if ! command -v code &>/dev/null; then
     TMP_DEB=$(mktemp /tmp/vscode-XXXX.deb)
     wget -qO "$TMP_DEB" \
         "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
-    sudo apt install -y "$TMP_DEB"
+    # Pre-answer the Microsoft repo dialog non-interactively
+    echo "code code/add-microsoft-repo boolean true" | sudo debconf-set-selections
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y "$TMP_DEB"
     rm -f "$TMP_DEB"
     log "VS Code installed"
-else
-    warn "VS Code already installed — skipping"
-fi
 
 # ── 13. Docker ────────────────────────────────────────────────────────────────
 section "Docker"
