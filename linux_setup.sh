@@ -202,10 +202,14 @@ else
     warn "Miniforge already installed — skipping"
 fi
 
-# Always ensure conda init block is in .bashrc
+# Always ensure conda and mamba init blocks are in .bashrc
 if ! grep -q 'conda initialize' "$BASHRC"; then
     "$MINIFORGE_DIR/bin/conda" init bash
     log "conda init added to .bashrc"
+fi
+if ! grep -q 'mamba initialize' "$BASHRC"; then
+    "$MINIFORGE_DIR/bin/mamba" init bash
+    log "mamba init added to .bashrc"
 fi
 
 # Source conda/mamba into current script session so they're usable immediately
