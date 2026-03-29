@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Bootstrap — Chromebook Setup
+# Bootstrap — linux_setup
 # Downloads all scripts and configs, then runs the full setup.
 #
 # One-liner:
@@ -32,6 +32,8 @@ echo ""
 mkdir -p "$DEST/configs"
 
 # ── Scripts ───────────────────────────────────────────────────────────────────
+fetch "bootstrap.sh"
+fetch "update.sh"
 fetch "chromebook_setup.sh"
 fetch "linux_setup.sh"
 fetch "chromebook_crostini.sh"
@@ -39,6 +41,7 @@ fetch "terminal_setup.sh"
 
 # ── Configs ───────────────────────────────────────────────────────────────────
 fetch "configs/starship.toml"
+fetch "configs/starship_simple.toml"
 fetch "configs/.bashrc_extras"
 fetch "configs/tmux.conf"
 fetch "configs/.nanorc"

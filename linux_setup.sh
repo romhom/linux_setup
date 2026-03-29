@@ -486,12 +486,13 @@ git lfs install
 CURRENT_GIT_EMAIL=$(git config --global user.email 2>/dev/null || true)
 CURRENT_GIT_NAME=$(git config --global user.name 2>/dev/null || true)
 
+# Read from /dev/tty directly — works even when script is run via curl | bash
 if [[ -z "$CURRENT_GIT_EMAIL" ]]; then
-    read -rp "  Git email address: " GIT_EMAIL
+    read -rp "  Git email address: " GIT_EMAIL < /dev/tty
     git config --global user.email "$GIT_EMAIL"
 fi
 if [[ -z "$CURRENT_GIT_NAME" ]]; then
-    read -rp "  Git display name:  " GIT_NAME
+    read -rp "  Git display name:  " GIT_NAME < /dev/tty
     git config --global user.name "$GIT_NAME"
 fi
 
@@ -507,18 +508,43 @@ log "Git configured"
 # ── 11. SSH Key ───────────────────────────────────────────────────────────────
 section "SSH Key"
 SSH_KEY="$HOME/.ssh/id_ed25519"
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+
 if [[ ! -f "$SSH_KEY" ]]; then
-    GIT_EMAIL=$(git config --global user.email)
-    ssh-keygen -t ed25519 -C "$GIT_EMAIL" -f "$SSH_KEY" -N ""
-    eval "$(ssh-agent -s)"
-    ssh-add "$SSH_KEY"
+    # Get email — use git config if set, otherwise prompt
+    # Read from /dev/tty directly so it works even when script is piped
+    SSH_EMAIL=$(git config --global user.email 2>/dev/null || true)
+    if [[ -z "$SSH_EMAIL" ]]; then
+        echo ""
+        read -rp "  Email for SSH key: " SSH_EMAIL < /dev/tty
+    fi
+
+    ssh-keygen -t ed25519 -C "$SSH_EMAIL" -f "$SSH_KEY" -N ""
+    log "SSH key generated"
+
+    # Start agent and add key
+    eval "$(ssh-agent -s)" > /dev/null
+    ssh-add "$SSH_KEY" 2>/dev/null
+
     echo ""
-    warn "Add this public key to GitHub/GitLab:"
+    echo -e "  ${BOLD}Add this public key to GitHub:${RESET}"
+    echo -e "  ${CYAN}https://github.com/settings/ssh/new${RESET}"
     echo ""
     cat "${SSH_KEY}.pub"
     echo ""
+    warn "Run 'ssh -T git@github.com' after adding the key to verify"
 else
     warn "SSH key already exists — skipping"
+    # Verify key works — advise if not yet added to GitHub
+    if ! ssh -T git@github.com -o StrictHostKeyChecking=accept-new 2>&1 | grep -q "successfully authenticated"; then
+        warn "SSH key not yet verified with GitHub"
+        info "Public key:"
+        cat "${SSH_KEY}.pub"
+        info "Add at: https://github.com/settings/ssh/new"
+    else
+        log "SSH key verified with GitHub"
+    fi
 fi
 
 # ── 12. VS Code ───────────────────────────────────────────────────────────────
@@ -646,6 +672,18 @@ if ! grep -q '\.local/bin' "$BASHRC"; then
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASHRC"
     log ".local/bin added to PATH"
 fi
+
+# ── Deduplicate .bashrc ───────────────────────────────────────────────────────
+section "Cleaning .bashrc"
+BEFORE=$(wc -l < "$BASHRC")
+awk '
+    /^[[:space:]]*$/ { print; next }
+    !seen[$0]++ { print }
+' "$BASHRC" > /tmp/.bashrc_clean && mv /tmp/.bashrc_clean "$BASHRC"
+AFTER=$(wc -l < "$BASHRC")
+REMOVED=$((BEFORE - AFTER))
+[[ "$REMOVED" -gt 0 ]] && log "Removed $REMOVED duplicate lines from .bashrc" \
+                        || log ".bashrc already clean"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 section "Core Setup Complete"

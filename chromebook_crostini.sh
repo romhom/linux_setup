@@ -40,23 +40,7 @@ else
     warn "sudoers display config already exists — skipping"
 fi
 
-# ── 2. ChromeOS File Access Aliases ──────────────────────────────────────────
-section "ChromeOS File Access"
-
-if ! grep -q "MyFiles" "$BASHRC"; then
-    cat >> "$BASHRC" <<'EOF'
-
-# ── ChromeOS file access ──────────────────────────────────────────────────────
-alias crdl='cd /mnt/chromeos/MyFiles/Downloads'
-alias crfiles='cd /mnt/chromeos/MyFiles'
-alias crgdrive='cd /mnt/chromeos/GoogleDrive/MyDrive'
-EOF
-    log "ChromeOS path aliases added"
-else
-    warn "ChromeOS aliases already in .bashrc — skipping"
-fi
-
-# ── 3. gedit-sudo wrapper ─────────────────────────────────────────────────────
+# ── 2. gedit-sudo wrapper ────────────────────────────────────────────────────
 section "gedit-sudo Wrapper"
 
 mkdir -p "$HOME/.local/bin"

@@ -55,8 +55,37 @@ else
     warn "Starship already installed ($(starship --version)) — skipping"
 fi
 
-# Pull starship config
-fetch "configs/starship.toml" "$HOME/.config/starship.toml"
+# Fetch both configs — nerd font and simple fallback
+mkdir -p "$HOME/.config/starship"
+fetch "configs/starship.toml"        "$HOME/.config/starship/nerd.toml"
+fetch "configs/starship_simple.toml" "$HOME/.config/starship/simple.toml"
+
+# Auto-detect which config to use:
+# - Crostini: Nerd Fonts live in ChromeOS, invisible to fc-list — default to simple
+# - Bare Linux: check fc-list for any installed Nerd Font
+_has_nerd_font() {
+    fc-list 2>/dev/null | grep -qi "Nerd\|NerdFont\|nerd font"
+}
+_is_crostini() {
+    [[ "$(hostname)" == "penguin" ]] || grep -qi "cros\|chromeos" /proc/version 2>/dev/null
+}
+
+if _is_crostini; then
+    STARSHIP_CFG="$HOME/.config/starship/simple.toml"
+    warn "Crostini detected — using simple prompt (Nerd Fonts not visible to Linux)"
+    info "To use Nerd Font prompt after installing font in ChromeOS: prompt-nerd"
+elif _has_nerd_font; then
+    STARSHIP_CFG="$HOME/.config/starship/nerd.toml"
+    log "Nerd Font detected — using full prompt"
+else
+    STARSHIP_CFG="$HOME/.config/starship/simple.toml"
+    warn "No Nerd Font detected — using simple prompt"
+    info "To switch after installing a Nerd Font: prompt-nerd"
+fi
+
+# Symlink active config to ~/.config/starship.toml (what starship reads by default)
+ln -sf "$STARSHIP_CFG" "$HOME/.config/starship.toml"
+log "Starship config set: $(basename "$STARSHIP_CFG" .toml)"
 
 # Wire starship into .bashrc
 if ! grep -q "starship init" "$BASHRC"; then
@@ -136,6 +165,20 @@ if ! fc-list | grep -qi "JetBrainsMono Nerd"; then
 else
     warn "JetBrainsMono Nerd Font already installed — skipping"
 fi
+
+# ── Deduplicate .bashrc ───────────────────────────────────────────────────────
+# Multiple script runs can accumulate duplicate eval/export lines.
+# This removes exact duplicate lines while preserving order.
+section "Cleaning .bashrc"
+BEFORE=$(wc -l < "$BASHRC")
+awk '
+    /^[[:space:]]*$/ { print; next }
+    !seen[$0]++ { print }
+' "$BASHRC" > /tmp/.bashrc_clean && mv /tmp/.bashrc_clean "$BASHRC"
+AFTER=$(wc -l < "$BASHRC")
+REMOVED=$((BEFORE - AFTER))
+[[ "$REMOVED" -gt 0 ]] && log "Removed $REMOVED duplicate lines from .bashrc" \
+                        || log ".bashrc already clean"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 section "Terminal Setup Complete"
