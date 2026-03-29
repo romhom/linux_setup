@@ -30,6 +30,10 @@ shopt -s histappend
 shopt -s cdspell        # auto-correct minor cd typos
 shopt -s checkwinsize   # update LINES/COLUMNS after each command
 
+# ── History prefix search ──────────────────────────────────────────────────────
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
+
 # ── Bracketed paste fix ───────────────────────────────────────────────────────
 # Prevents %200 and %201 appearing when pasting in Crostini terminal
 bind 'set enable-bracketed-paste off'
