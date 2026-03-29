@@ -218,7 +218,7 @@ CONDA_PROFILE="$HOME/miniforge3/etc/profile.d/conda.sh"
 MAMBA_PROFILE="$HOME/miniforge3/etc/profile.d/mamba.sh"
 export MAMBA_ROOT_PREFIX="$HOME/miniforge3"
 [[ -f "$CONDA_PROFILE" ]] && source "$CONDA_PROFILE" && export CONDA_AUTO_ACTIVATE_BASE=false
-[[ -f "$MAMBA_PROFILE" ]] && source "$MAMBA_PROFILE"
+[[ -f "$MAMBA_PROFILE" ]] && { set +u; source "$MAMBA_PROFILE"; set -u; } || true
 command -v mamba &>/dev/null && log "mamba active: $(mamba --version | head -1)"
 
 # ── 7. direnv — automatic environment activation ──────────────────────────────
