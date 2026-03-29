@@ -103,8 +103,6 @@ if ! command -v node &>/dev/null; then
     mkdir -p "$HOME/.npm-global"
     npm config set prefix "$HOME/.npm-global"
 
-    export PATH="$HOME/.npm-global/bin:$PATH"
-
     # Useful global npm tools
     npm install -g \
         npx \
@@ -117,9 +115,16 @@ else
     warn "Node.js already installed ($(node --version)) — skipping"
 fi
 
-# Source npm global path into current script session unconditionally
-# (only runs inside if-block on fresh install, so set it here for re-runs too)
+# Always ensure npm global path is in .bashrc and current session
 export PATH="$HOME/.npm-global/bin:$PATH"
+if ! grep -q "npm-global" "$BASHRC"; then
+    cat >> "$BASHRC" <<'EOF'
+
+# ── npm global (no sudo) ──────────────────────────────────────────────────────
+export PATH="$HOME/.npm-global/bin:$PATH"
+EOF
+    log "npm global path added to .bashrc"
+fi
 
 # ── 4. Python Core ────────────────────────────────────────────────────────────
 section "Python Core"
@@ -225,14 +230,19 @@ command -v mamba &>/dev/null && log "mamba active: $(mamba --version | head -1)"
 section "direnv"
 if ! command -v direnv &>/dev/null; then
     sudo apt install -y direnv
+    log "direnv installed — add .envrc to any project for auto-activation"
+else
+    warn "direnv already installed — skipping"
+fi
+
+# Always ensure direnv hook is in .bashrc
+if ! grep -q "direnv hook" "$BASHRC"; then
     cat >> "$BASHRC" <<'EOF'
 
 # ── direnv ────────────────────────────────────────────────────────────────────
 eval "$(direnv hook bash)"
 EOF
-    log "direnv installed — add .envrc to any project for auto-activation"
-else
-    warn "direnv already installed — skipping"
+    log "direnv hook added to .bashrc"
 fi
 
 # ── 8. Global Python Tools (via uv tool install) ──────────────────────────────
@@ -376,15 +386,20 @@ mkdir -p "$HOME/.local/bin"
 # zoxide — smarter cd
 if ! command -v zoxide &>/dev/null; then
     curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+    log "zoxide installed"
+else
+    warn "zoxide already installed — skipping"
+fi
+
+# Always ensure zoxide init is in .bashrc
+if ! grep -q "zoxide init" "$BASHRC"; then
     cat >> "$BASHRC" <<'EOF'
 
 # ── zoxide (smart cd) ─────────────────────────────────────────────────────────
 eval "$(zoxide init bash)"
 alias cd='z'
 EOF
-    log "zoxide installed"
-else
-    warn "zoxide already installed — skipping"
+    log "zoxide added to .bashrc"
 fi
 
 # delta — better git diff
