@@ -1,0 +1,125 @@
+# =============================================================================
+# Starship prompt — simple/fallback config (no Nerd Font required)
+# Works with any monospace font including default Chromebook terminal fonts.
+# Switch to full config: prompt-nerd
+# =============================================================================
+
+format = """
+[┌─](bold dimmed white)$username$hostname$directory$git_branch$git_status$git_state\
+$python$conda$docker_context$jobs
+[└─](bold dimmed white)$character"""
+
+# ── Prompt character ──────────────────────────────────────────────────────────
+[character]
+success_symbol = "[>](bold green)"
+error_symbol   = "[>](bold red)"
+vimcmd_symbol  = "[<](bold yellow)"
+
+# ── OS icon — disabled (requires Nerd Font) ───────────────────────────────────
+[os]
+disabled = true
+
+# ── Username ──────────────────────────────────────────────────────────────────
+[username]
+show_always = false
+style_user  = "bold cyan"
+style_root  = "bold red"
+format      = "[$user]($style) "
+
+# ── Hostname (SSH only) ───────────────────────────────────────────────────────
+[hostname]
+ssh_only = true
+style    = "bold yellow"
+format   = "[@$hostname]($style) "
+
+# ── Directory ─────────────────────────────────────────────────────────────────
+[directory]
+style             = "bold cyan"
+truncation_length = 4
+truncate_to_repo  = true
+read_only         = " [RO]"
+format            = "[$path]($style)[$read_only]($read_only_style) "
+
+[directory.substitutions]
+"/mnt/chromeos/MyFiles"           = "ChromeOS"
+"/mnt/chromeos/MyFiles/Downloads" = "Downloads"
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+[git_branch]
+symbol = "git:"
+style  = "bold purple"
+format = "[$symbol$branch(:$remote_branch)]($style) "
+
+[git_status]
+style      = "bold yellow"
+format     = "([$all_status$ahead_behind]($style) )"
+ahead      = "^${count}"
+behind     = "v${count}"
+diverged   = "<>${count}"
+untracked  = "?${count}"
+stashed    = "~${count}"
+modified   = "!${count}"
+staged     = "+${count}"
+deleted    = "x${count}"
+conflicted = "=${count}"
+
+[git_state]
+style  = "bold red"
+format = "[$state($progress_current/$progress_total)]($style) "
+
+# ── Python ────────────────────────────────────────────────────────────────────
+[python]
+symbol            = "py:"
+style             = "bold yellow"
+format            = "[$symbol$version( \\($virtualenv\\))]($style) "
+detect_extensions = ["py"]
+detect_files      = ["pyproject.toml", "Pipfile", "setup.py", "setup.cfg",
+                     "requirements.txt", ".python-version", "tox.ini"]
+detect_folders    = [".venv", "venv", "__pypackages__"]
+
+# ── Conda / mamba env ─────────────────────────────────────────────────────────
+[conda]
+symbol      = "conda:"
+style       = "bold green"
+format      = "[$symbol$environment]($style) "
+ignore_base = true
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+[docker_context]
+symbol          = "docker:"
+style           = "bold blue"
+format          = "[$symbol$context]($style) "
+only_with_files = true
+
+# ── Background jobs ───────────────────────────────────────────────────────────
+[jobs]
+symbol    = "bg:"
+style     = "bold blue"
+threshold = 1
+format    = "[$symbol$number]($style) "
+
+# ── Command duration ──────────────────────────────────────────────────────────
+[cmd_duration]
+min_time           = 2000
+style              = "bold yellow"
+format             = "[took $duration]($style) "
+show_notifications = false
+
+# ── Disabled modules ──────────────────────────────────────────────────────────
+[package]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[ruby]
+disabled = true
+
+[golang]
+disabled = true
+
+[rust]
+disabled = true
+
+[java]
+disabled = true
