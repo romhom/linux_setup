@@ -6,14 +6,14 @@
 
 format = """
 [┌─](bold dimmed white)$username$hostname$directory$git_branch$git_status$git_state\
-$python$conda$docker_context$jobs
+$python$conda$docker_context$jobs$cmd_duration
 [└─](bold dimmed white)$character"""
 
 # ── Prompt character ──────────────────────────────────────────────────────────
 [character]
 success_symbol = "[>](bold green)"
 error_symbol   = "[>](bold red)"
-vimcmd_symbol  = "[<](bold yellow)"
+vimcmd_symbol = "[<](bold yellow)"
 
 # ── OS icon — disabled (requires Nerd Font) ───────────────────────────────────
 [os]
