@@ -197,3 +197,211 @@ up                            # update everything
 setup-update                  # sync setup scripts from GitHub
 pyinfo                        # Python environment summary
 ```
+
+---
+
+
+## Cheat Sheet
+
+### Python Development
+| Command | Description |
+|---------|-------------|
+| `mkpy <name>` | Scaffold new project — pyproject.toml, ruff, mypy, pre-commit, Makefile |
+| `uvi` | `uv init` — initialise project in current dir |
+| `uva <pkg>` | `uv add` — add dependency |
+| `uvad <pkg>` | `uv add --dev` — add dev dependency |
+| `uvs` | `uv sync` — sync env to lockfile |
+| `uvrun <cmd>` | `uv run` — run command in project env |
+| `uvp 3.12` | Install Python version |
+| `venv` | Create `.venv` in current dir |
+| `activate` | Source `.venv/bin/activate` |
+| `da` | Deactivate venv |
+| `jl` | Jupyter Lab |
+| `pyinfo` | Show current Python environment summary |
+
+### Code Quality
+| Command | Description |
+|---------|-------------|
+| `lint` | `ruff check .` |
+| `lintfix` | `ruff check --fix .` |
+| `format` | `ruff format .` |
+| `typecheck` | `mypy .` |
+| `secure` | `bandit -r .` security scan |
+| `t` | `pytest` |
+| `tv` | `pytest -v` |
+| `tc` | `pytest --cov` |
+
+### Git
+| Command | Description |
+|---------|-------------|
+| `lg` | lazygit TUI |
+| `gs` | `git status -sb` |
+| `ga` | `git add` |
+| `gaa` | `git add --all` |
+| `gap` | `git add --patch` — interactive staging |
+| `gc "<msg>"` | `git commit -m` |
+| `gp` | `git push` |
+| `gpf` | `git push --force-with-lease` |
+| `gpl` | `git pull` |
+| `gd` | `git diff` |
+| `glog` | Pretty graph log |
+| `gcb <name>` | Create and switch branch |
+| `gst` / `gstp` | Stash / stash pop |
+
+### GitHub CLI
+| Command | Description |
+|---------|-------------|
+| `ghpr` | Create PR |
+| `ghprl` | List PRs |
+| `ghil` | List issues |
+| `ghrv` | Open repo in browser |
+
+### Navigation
+| Command | Description |
+|---------|-------------|
+| `z <name>` | Jump to most-used matching directory |
+| `fcd` | Fuzzy cd into any directory |
+| `fopen` | Fuzzy open file in editor |
+| `fh` | Fuzzy search command history |
+| `crdl` | Jump to ChromeOS Downloads |
+| `crfiles` | Jump to ChromeOS MyFiles |
+| `crgdrive` | Jump to Google Drive |
+
+### tmux
+| Command | Description |
+|---------|-------------|
+| `tn <name>` | New named session |
+| `ta` | Attach to last session |
+| `tl` | List sessions |
+| `tk <name>` | Kill named session |
+| `prefix` | `Ctrl+a` |
+| `prefix + \|` | Split vertical |
+| `prefix + -` | Split horizontal |
+| `prefix + h/j/k/l` | Navigate panes |
+| `prefix + d` | Detach session |
+| `prefix + I` | Install plugins (first run) |
+
+### Docker
+| Command | Description |
+|---------|-------------|
+| `dps` | `docker ps` |
+| `dcu` | `docker compose up -d` |
+| `dcd` | `docker compose down` |
+| `dcl` | `docker compose logs -f` |
+| `dlogs` | `docker logs -f` |
+| `dprune` | Remove all unused containers/images |
+
+### System
+| Command | Description |
+|---------|-------------|
+| `setup-check` | Verify all tools installed correctly |
+| `setup-update` | Sync latest scripts and configs from GitHub |
+| `up` | Update apt + uv tools + setup scripts |
+| `weather` | Terminal weather |
+| `myip` | External IP address |
+| `ports` | Show listening ports |
+| `psg <name>` | Search running processes |
+| `extract <file>` | Extract any archive type |
+| `serve <port>` | Quick HTTP server in current dir |
+
+### Prompt (Chromebook)
+| Command | Description |
+|---------|-------------|
+| `prompt-simple` | Switch to plain prompt (any font) |
+| `prompt-nerd` | Switch to Nerd Font prompt |
+| `prompt-status` | Show which prompt is active |
+
+---
+
+---
+
+## Terminal Behaviour & Keyboard Shortcuts
+
+### History
+| Key | Action |
+|-----|--------|
+| `Up` / `Down` | Cycle through history matching current prefix |
+| `Ctrl+R` | Fuzzy search full history (fzf) |
+| `fh` | Fuzzy history search — select and run |
+
+Type a partial command then press Up to filter — e.g. type `git` then Up cycles only through git commands.
+
+### Line editing
+| Key | Action |
+|-----|--------|
+| `Ctrl+A` | Jump to start of line |
+| `Ctrl+E` | Jump to end of line |
+| `Ctrl+W` | Delete word to the left |
+| `Alt+F` / `Alt+B` | Move forward/back one word |
+| `Ctrl+U` | Delete from cursor to start of line |
+| `Ctrl+K` | Delete from cursor to end of line |
+| `Ctrl+L` | Clear screen (keeps current line) |
+| `Ctrl+C` | Cancel current command |
+| `Ctrl+Z` | Suspend process (resume with `fg`) |
+
+### fzf (fuzzy finder)
+| Key | Action |
+|-----|--------|
+| `Ctrl+R` | Fuzzy search command history |
+| `Ctrl+T` | Fuzzy search files, insert path at cursor |
+| `Alt+C` | Fuzzy cd into subdirectory |
+
+Inside fzf: type to filter, `Up`/`Down` to navigate, `Enter` to select, `Esc` to cancel.
+
+### zoxide (smart cd)
+```bash
+z proj          # jump to most-used dir matching 'proj'
+z foo bar       # match dir containing both 'foo' and 'bar'
+zi              # interactive fuzzy selection of recent dirs
+```
+Builds up over time — the more you use a directory, the higher it ranks.
+
+### Tab completion
+| Key | Action |
+|-----|--------|
+| `Tab` | Complete command, path, or argument |
+| `Tab Tab` | Show all completions when ambiguous |
+
+uv, gh, and git all have full tab completion wired up.
+
+### Terminal tabs & sessions
+On Chromebook — open a new Linux terminal tab with `Ctrl+T` in the Terminal app. Each tab is a separate shell but shares the same Linux container.
+
+Use **tmux** instead for persistent sessions that survive terminal closes:
+```bash
+tn work         # create session called 'work'
+ta              # reattach after closing terminal
+```
+
+### Background jobs
+```bash
+some-command &      # run in background
+jobs                # list background jobs
+fg                  # bring last job to foreground
+fg %2               # bring job 2 to foreground
+Ctrl+Z              # suspend current job
+```
+
+### Useful patterns
+```bash
+# Pipe to clipboard
+cat file.txt | pbcopy
+
+# Quick file server in current dir
+serve 8080
+
+# Find and open file in editor
+fopen
+
+# Check what's using a port
+ports | grep 8080
+
+# Benchmark two commands
+hyperfine 'cmd1' 'cmd2'
+
+# Preview any file nicely
+bat filename
+
+# Render markdown
+glow README.md
+```
