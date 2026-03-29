@@ -202,6 +202,12 @@ else
     warn "Miniforge already installed — skipping"
 fi
 
+# Always ensure conda init block is in .bashrc
+if ! grep -q 'conda initialize' "$BASHRC"; then
+    "$MINIFORGE_DIR/bin/conda" init bash
+    log "conda init added to .bashrc"
+fi
+
 # Source conda/mamba into current script session so they're usable immediately
 CONDA_PROFILE="$HOME/miniforge3/etc/profile.d/conda.sh"
 MAMBA_PROFILE="$HOME/miniforge3/etc/profile.d/mamba.sh"
