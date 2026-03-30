@@ -413,16 +413,7 @@ else
     warn "zoxide already installed — skipping"
 fi
 
-# Always ensure zoxide init is in .bashrc
-if ! grep -q "zoxide init" "$BASHRC"; then
-    cat >> "$BASHRC" <<'EOF'
-
-# ── zoxide (smart cd) ─────────────────────────────────────────────────────────
-eval "$(zoxide init bash)"
-alias cd='z'
-EOF
-    log "zoxide added to .bashrc"
-fi
+# zoxide init will be appended at the end of .bashrc (after all other tools)
 
 # delta — better git diff
 # Uses musl (statically linked) if glibc < 2.38, gnu otherwise.
@@ -743,6 +734,17 @@ EOF
     fi
 fi
 
+
+# ── Zoxide init (must be last in .bashrc) ────────────────────────────────────
+# Remove any existing zoxide block, then re-append so it stays after conda/mamba
+sed -i '/# ── zoxide (smart cd)/,/alias cd=.z./d' "$BASHRC"
+cat >> "$BASHRC" <<'EOF'
+
+# ── zoxide (smart cd) ─────────────────────────────────────────────────────────
+eval "$(zoxide init bash)"
+alias cd='z'
+EOF
+log "zoxide init placed at end of .bashrc"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 section "Core Setup Complete"
