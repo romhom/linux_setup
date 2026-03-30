@@ -284,16 +284,18 @@ bashrc-dedup() {
     echo "Backup saved: $backup"
 
     # Remove duplicate lines while preserving order and blank lines
+    local TMP_DEDUPED
+    TMP_DEDUPED=$(mktemp)
     awk '
         /^[[:space:]]*$/ { print; next }
         !seen[$0]++ { print }
-    ' "$HOME/.bashrc" > /tmp/.bashrc_deduped
+    ' "$HOME/.bashrc" > "$TMP_DEDUPED"
 
     # Count how many lines removed
     local before after
     before=$(wc -l < "$HOME/.bashrc")
-    after=$(wc -l < /tmp/.bashrc_deduped)
-    mv /tmp/.bashrc_deduped "$HOME/.bashrc"
+    after=$(wc -l < "$TMP_DEDUPED")
+    mv "$TMP_DEDUPED" "$HOME/.bashrc"
     echo "Removed $((before - after)) duplicate lines from .bashrc"
     echo "Run: source ~/.bashrc"
 }
@@ -312,7 +314,7 @@ alias psg='ps auxf | grep -v grep | grep -i'   # search processes: psg python
 alias killp='kill -9'
 alias myip='curl -s ifconfig.me && echo ""'     # external IP
 alias localip='hostname -I | awk "{print \$1}"' # local IP
-alias speedtest='curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -'
+alias speedtest='uvx speedtest-cli'
 
 # ── Files and text ────────────────────────────────────────────────────────────
 alias count='wc -l'                        # count lines: cat file | count
@@ -613,7 +615,13 @@ if command -v fzf &>/dev/null; then
     fkill() {
         local pid
         pid=$(ps aux | fzf --header='Select process to kill' | awk '{print $2}')
-        [[ -n "$pid" ]] && kill -9 "$pid" && echo "Killed $pid"
+        if [[ -n "$pid" ]]; then
+            if kill -15 "$pid" 2>/dev/null; then
+                echo "Terminated $pid"
+            else
+                kill -9 "$pid" 2>/dev/null && echo "Force-killed $pid"
+            fi
+        fi
     }
 
     # fcd — fuzzy cd into any directory

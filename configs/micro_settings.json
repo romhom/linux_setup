@@ -14,5 +14,5 @@
     "diffgutter": true,
     "scrollbar": true,
     "clipboard": "external",
-    "statusformatr": "$(filename) $(modified)($(line),$(col)) $(opt:filetype) | $(opt:fileformat) | $(opt:encoding)"
+    "statusformat": "$(filename) $(modified)($(line),$(col)) $(opt:filetype) | $(opt:fileformat) | $(opt:encoding)"
 }

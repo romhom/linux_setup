@@ -6,6 +6,11 @@
 # =============================================================================
 set -euo pipefail
 
+# Cleanup temp files on exit or interrupt
+_TMPFILES=()
+_cleanup() { rm -f "${_TMPFILES[@]}"; }
+trap _cleanup EXIT INT TERM
+
 BASHRC="$HOME/.bashrc"
 
 # ── Colours ───────────────────────────────────────────────────────────────────
@@ -25,6 +30,10 @@ command -v apt >/dev/null || die "apt not found — is this a Debian/Ubuntu syst
 # Detect distro for Docker repo (debian vs ubuntu)
 DISTRO_ID=$(. /etc/os-release && echo "$ID")
 DISTRO_CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
+
+# Validate — these are embedded in URLs; reject anything non-alphanumeric
+[[ "$DISTRO_ID"       =~ ^[a-zA-Z0-9_-]+$ ]] || die "Unexpected DISTRO_ID value: $DISTRO_ID"
+[[ "$DISTRO_CODENAME" =~ ^[a-zA-Z0-9_.-]+$ ]] || die "Unexpected DISTRO_CODENAME value: $DISTRO_CODENAME"
 
 # ── Guarantee PATH written first ──────────────────────────────────────────────
 # Must be first in .bashrc so every subsequent eval (starship, zoxide etc) 
@@ -95,7 +104,11 @@ log "Core tools installed"
 # Installs current LTS via NodeSource — much newer than the apt default.
 section "Node.js + npm"
 if ! command -v node &>/dev/null; then
-    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    TMP_NODESRC=$(mktemp --suffix=.sh)
+    _TMPFILES+=("$TMP_NODESRC")
+    curl -fsSL https://deb.nodesource.com/setup_lts.x -o "$TMP_NODESRC"
+    sudo -E bash "$TMP_NODESRC"
+    rm -f "$TMP_NODESRC"
     sudo apt install -y nodejs
     log "Node.js installed: $(node --version)  npm: $(npm --version)"
 
@@ -152,7 +165,11 @@ log "Python versions managed by uv — run \'uv python list\' to see available"
 # Miniforge/mamba is a fallback for conda-only packages (gdal, rasterio etc.)
 section "uv"
 if ! command -v uv &>/dev/null; then
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+    TMP_UV=$(mktemp --suffix=.sh)
+    _TMPFILES+=("$TMP_UV")
+    curl -LsSf https://astral.sh/uv/install.sh -o "$TMP_UV"
+    sh "$TMP_UV"
+    rm -f "$TMP_UV"
     log "uv installed"
 else
     warn "uv already installed — skipping"
@@ -189,7 +206,8 @@ section "Miniforge / mamba (conda fallback)"
 MINIFORGE_DIR="$HOME/miniforge3"
 if [[ ! -d "$MINIFORGE_DIR" ]]; then
     info "Downloading Miniforge installer..."
-    TMP_MFORGE=$(mktemp /tmp/miniforge-XXXX.sh)
+    TMP_MFORGE=$(mktemp --suffix=.sh)
+    _TMPFILES+=("$TMP_MFORGE")
     curl -fsSL \
         "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" \
         -o "$TMP_MFORGE"
@@ -385,7 +403,11 @@ mkdir -p "$HOME/.local/bin"
 
 # zoxide — smarter cd
 if ! command -v zoxide &>/dev/null; then
-    curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+    TMP_ZOXIDE=$(mktemp --suffix=.sh)
+    _TMPFILES+=("$TMP_ZOXIDE")
+    curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh -o "$TMP_ZOXIDE"
+    sh "$TMP_ZOXIDE"
+    rm -f "$TMP_ZOXIDE"
     log "zoxide installed"
 else
     warn "zoxide already installed — skipping"
@@ -407,7 +429,8 @@ fi
 # Crostini/Debian Bookworm ships glibc 2.36 — musl required there.
 if ! command -v delta &>/dev/null; then
     DELTA_VER=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest \
-        | grep tag_name | cut -d'"' -f4)
+        | jq -r '.tag_name // empty')
+    [[ -z "$DELTA_VER" ]] && die "Failed to fetch delta version from GitHub API"
 
     # Detect glibc version — musl is safer on anything below 2.38
     GLIBC_VER=$(ldd --version 2>/dev/null | head -1 | grep -oP '\d+\.\d+$' || echo "0.0")
@@ -438,7 +461,8 @@ else
         warn "delta binary broken (likely glibc mismatch) — reinstalling musl build"
         rm -f "$HOME/.local/bin/delta"
         DELTA_VER=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest \
-            | grep tag_name | cut -d'"' -f4)
+            | jq -r '.tag_name // empty')
+        [[ -z "$DELTA_VER" ]] && die "Failed to fetch delta version from GitHub API"
         curl -fsSL \
             "https://github.com/dandavison/delta/releases/latest/download/delta-${DELTA_VER}-x86_64-unknown-linux-musl.tar.gz" \
             | tar -xz --strip-components=1 -C "$HOME/.local/bin" \
@@ -452,11 +476,14 @@ fi
 # duf — better df
 if ! command -v duf &>/dev/null; then
     DUF_VER=$(curl -s https://api.github.com/repos/muesli/duf/releases/latest \
-        | grep tag_name | cut -d'"' -f4 | tr -d 'v')
+        | jq -r '.tag_name // empty' | sed 's/^v//')
+    [[ -z "$DUF_VER" ]] && die "Failed to fetch duf version from GitHub API"
+    TMP_DUF=$(mktemp --suffix=.deb)
+    _TMPFILES+=("$TMP_DUF")
     curl -fsSL \
         "https://github.com/muesli/duf/releases/latest/download/duf_${DUF_VER}_linux_amd64.deb" \
-        -o /tmp/duf.deb
-    sudo apt install -y /tmp/duf.deb && rm /tmp/duf.deb
+        -o "$TMP_DUF"
+    sudo apt install -y "$TMP_DUF" && rm -f "$TMP_DUF"
     log "duf installed"
 else
     warn "duf already installed — skipping"
@@ -465,7 +492,8 @@ fi
 # lazygit — terminal git UI
 if ! command -v lazygit &>/dev/null; then
     LG_VER=$(curl -s https://api.github.com/repos/jesseduffield/lazygit/releases/latest \
-        | grep tag_name | cut -d'"' -f4 | tr -d 'v')
+        | jq -r '.tag_name // empty' | sed 's/^v//')
+    [[ -z "$LG_VER" ]] && die "Failed to fetch lazygit version from GitHub API"
     curl -fsSL \
         "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LG_VER}_Linux_x86_64.tar.gz" \
         | tar -xz -C "$HOME/.local/bin" lazygit
@@ -478,8 +506,7 @@ fi
 if ! command -v gh &>/dev/null; then
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
         | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] \
-        https://cli.github.com/packages stable main" \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
         | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
     sudo apt update && sudo apt install -y gh
     log "gh installed — run: gh auth login"
@@ -503,11 +530,14 @@ fi
 # hyperfine — benchmarking
 if ! command -v hyperfine &>/dev/null; then
     HF_VER=$(curl -s https://api.github.com/repos/sharkdp/hyperfine/releases/latest \
-        | grep tag_name | cut -d'"' -f4 | tr -d 'v')
+        | jq -r '.tag_name // empty' | sed 's/^v//')
+    [[ -z "$HF_VER" ]] && die "Failed to fetch hyperfine version from GitHub API"
+    TMP_HF=$(mktemp --suffix=.deb)
+    _TMPFILES+=("$TMP_HF")
     curl -fsSL \
         "https://github.com/sharkdp/hyperfine/releases/latest/download/hyperfine_${HF_VER}_amd64.deb" \
-        -o /tmp/hyperfine.deb
-    sudo apt install -y /tmp/hyperfine.deb && rm /tmp/hyperfine.deb
+        -o "$TMP_HF"
+    sudo apt install -y "$TMP_HF" && rm -f "$TMP_HF"
     log "hyperfine installed"
 else
     warn "hyperfine already installed — skipping"
@@ -597,7 +627,8 @@ fi
 section "VS Code"
 if ! command -v code &>/dev/null; then
     info "Downloading VS Code..."
-    TMP_DEB=$(mktemp /tmp/vscode-XXXX.deb)
+    TMP_DEB=$(mktemp --suffix=.deb)
+    _TMPFILES+=("$TMP_DEB")
     wget -qO "$TMP_DEB" \
         "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
     # Pre-answer the Microsoft repo dialog non-interactively
@@ -616,10 +647,8 @@ if ! command -v docker &>/dev/null; then
     curl -fsSL "https://download.docker.com/linux/${DISTRO_ID}/gpg" \
         | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     sudo chmod a+r /etc/apt/keyrings/docker.gpg
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-      https://download.docker.com/linux/${DISTRO_ID} ${DISTRO_CODENAME} stable" \
-      | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${DISTRO_ID} ${DISTRO_CODENAME} stable" \
+        | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt update
     sudo apt install -y docker-ce docker-ce-cli containerd.io \
         docker-buildx-plugin docker-compose-plugin
@@ -641,8 +670,7 @@ if ! command -v az &>/dev/null; then
 
     # Use distro codename — falls back to bookworm for Crostini/Debian
     AZ_DIST="${DISTRO_CODENAME}"
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] \
-        https://packages.microsoft.com/repos/azure-cli/ ${AZ_DIST} main" \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ ${AZ_DIST} main" \
         | sudo tee /etc/apt/sources.list.d/azure-cli.list > /dev/null
 
     sudo apt update && sudo apt install -y azure-cli
@@ -680,10 +708,12 @@ else
 
     # Add NVIDIA keyring and repo
     sudo install -m 0755 -d /etc/apt/keyrings
+    TMP_CUDA_KEY=$(mktemp --suffix=.deb)
+    _TMPFILES+=("$TMP_CUDA_KEY")
     curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/${DISTRO_ID}$(lsb_release -sr | tr -d '.')/x86_64/cuda-keyring_1.1-1_all.deb" \
-        -o /tmp/cuda-keyring.deb 2>/dev/null \
-    && sudo apt install -y /tmp/cuda-keyring.deb \
-    && rm -f /tmp/cuda-keyring.deb \
+        -o "$TMP_CUDA_KEY" 2>/dev/null \
+    && sudo apt install -y "$TMP_CUDA_KEY" \
+    && rm -f "$TMP_CUDA_KEY" \
     || {
         warn "CUDA repo setup failed — check https://developer.nvidia.com/cuda-downloads for manual install"
     }
@@ -691,7 +721,7 @@ else
     sudo apt update
     # Install toolkit only (not drivers — those should already be installed)
     sudo apt install -y cuda-toolkit
-    log "CUDA toolkit installed: $(nvcc --version 2>/dev/null | grep release | awk '{print $6}')"
+    log "CUDA toolkit installed: $(nvcc --version 2>/dev/null | grep -oP 'release \K[\d.]+' || echo 'unknown')"
 
     # Add CUDA to PATH
     if ! grep -q "cuda" "$BASHRC"; then

@@ -8,6 +8,11 @@
 # =============================================================================
 set -euo pipefail
 
+# Cleanup temp files on exit or interrupt
+_TMPFILES=()
+_cleanup() { rm -f "${_TMPFILES[@]}"; }
+trap _cleanup EXIT INT TERM
+
 REPO_RAW="https://raw.githubusercontent.com/romhom/linux_setup/main"
 BASHRC="$HOME/.bashrc"
 
@@ -48,7 +53,11 @@ section "Starship Prompt"
 if ! command -v starship &>/dev/null; then
     # Install to ~/.local/bin to avoid sudo password prompt
     mkdir -p "$HOME/.local/bin"
-    curl -fsSL https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+    TMP_STARSHIP=$(mktemp --suffix=.sh)
+    _TMPFILES+=("$TMP_STARSHIP")
+    curl -fsSL https://starship.rs/install.sh -o "$TMP_STARSHIP"
+    sh "$TMP_STARSHIP" -- --yes --bin-dir "$HOME/.local/bin"
+    rm -f "$TMP_STARSHIP"
     command -v starship >/dev/null || die "Starship install failed — binary not found"
     log "Starship installed: $(starship --version)"
 else
@@ -84,8 +93,14 @@ else
 fi
 
 # Symlink active config to ~/.config/starship.toml (what starship reads by default)
-ln -sf "$STARSHIP_CFG" "$HOME/.config/starship.toml"
-log "Starship config set: $(basename "$STARSHIP_CFG" .toml)"
+# Only set if not already pointing to a valid config (preserve user's manual choice)
+CURRENT_CFG=$(readlink "$HOME/.config/starship.toml" 2>/dev/null || true)
+if [[ -z "$CURRENT_CFG" ]] || [[ ! -f "$CURRENT_CFG" ]]; then
+    ln -sf "$STARSHIP_CFG" "$HOME/.config/starship.toml"
+    log "Starship config set: $(basename "$STARSHIP_CFG" .toml)"
+else
+    warn "Starship config already set to $(basename "$CURRENT_CFG" .toml) — skipping (use prompt-nerd or prompt-simple to change)"
+fi
 
 # Guarantee PATH is at top of .bashrc before starship init is written
 # Without this, starship can't be found on a fresh shell
@@ -162,9 +177,11 @@ fi
 if ! fc-list | grep -qi "JetBrainsMono Nerd"; then
     info "Downloading JetBrainsMono Nerd Font (~50MB)..."
     FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip"
-    if curl -fsSL "$FONT_URL" -o /tmp/JetBrainsMono.zip; then
-        unzip -o /tmp/JetBrainsMono.zip -d "$FONT_DIR/JetBrainsMono" '*.ttf' 2>/dev/null || true
-        rm -f /tmp/JetBrainsMono.zip
+    TMP_FONT=$(mktemp --suffix=.zip)
+    _TMPFILES+=("$TMP_FONT")
+    if curl -fsSL "$FONT_URL" -o "$TMP_FONT"; then
+        unzip -o "$TMP_FONT" -d "$FONT_DIR/JetBrainsMono" '*.ttf' 2>/dev/null || true
+        rm -f "$TMP_FONT"
         fc-cache -f "$FONT_DIR" > /dev/null
         log "JetBrainsMono Nerd Font installed"
         warn "Set terminal font to 'JetBrainsMono Nerd Font' for Starship symbols"
