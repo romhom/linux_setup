@@ -7,6 +7,7 @@ Automated Python dev environment setup for Chromebook (Crostini) and any Debian/
 ## Quick Start
 
 **One command — works on Chromebook and any Debian/Ubuntu machine:**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh
 ```
@@ -23,6 +24,7 @@ Platform is auto-detected. On Chromebook, Crostini-specific config is applied au
 4. Configures terminal — Starship prompt, tmux, aliases, editor configs
 
 After install:
+
 ```bash
 source ~/.bashrc       # apply shell config
 gh auth login          # authenticate GitHub
@@ -33,17 +35,18 @@ ssh -T git@github.com  # verify SSH key
 
 ## Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `install.sh` | Single entry point — auto-detects platform, runs everything |
-| `linux_setup.sh` | Portable core — Python, tools, Git, Docker, Azure CLI |
-| `chromebook_crostini.sh` | Crostini extras — display fix, gedit-sudo wrapper |
-| `terminal_setup.sh` | Starship prompt, bash config, tmux, editor configs |
-| `update.sh` | Re-fetches latest scripts and configs from GitHub |
+|Script|Purpose|
+|---|---|
+|`install.sh`|Single entry point — auto-detects platform, runs everything|
+|`linux_setup.sh`|Portable core — Python, tools, Git, Docker, Azure CLI|
+|`chromebook_crostini.sh`|Crostini extras — display fix, gedit-sudo wrapper|
+|`terminal_setup.sh`|Starship prompt, bash config, tmux, editor configs|
+|`update.sh`|Re-fetches latest scripts and configs from GitHub|
 
 All scripts are **idempotent** — safe to re-run, skips anything already installed.
 
 **Re-run options:**
+
 ```bash
 # Re-run everything (ignores saved progress)
 bash ~/linux_setup/install.sh --skip-checkpoints
@@ -63,18 +66,23 @@ setup-check
 
 ### Core (`linux_setup.sh`)
 
-**System**
+#### System
+
 - Build tools, curl, wget, git, git-lfs, CA certs
 - Node.js LTS + npm (via NodeSource), global tools: prettier, typescript, ts-node, nodemon
 
-**Python**
+#### Python
+
 - System Python 3 (build deps only — python3-pip/venv/dev removed to avoid uv conflicts)
 - **uv** — primary Python manager: versions, venvs, packages (replaces pip, pipx, poetry, pyenv)
 - **Miniforge** — mamba + conda as fallback for conda-only packages (gdal, rasterio etc.)
 - **direnv** — automatic venv activation per project directory
 - Python 3.12 installed via uv
 
-**Global Python tools** (via `uv tool install`)
+#### Global Python tools
+
+via `uv tool install`
+
 - Code quality: `ruff`, `mypy`, `pyright`, `bandit`, `vulture`
 - Testing: `pytest`, `hypothesis`, `nox`, `tox`
 - Dev workflow: `pre-commit`, `cookiecutter`, `bump-my-version`, `twine`, `build`
@@ -84,17 +92,27 @@ setup-check
 - Docs: `mkdocs`
 - Utilities: `pipdeptree`, `pip-audit`, `liccheck`, `typer`
 
-**Terminal utilities**
+#### Terminal utilities
+
 - `fzf`, `ripgrep`, `bat`, `fd`, `ncdu`, `tmux`, `micro`, `nano`, `htop`, `tree`
 - `jq`, `yq`, `pv`, `entr`, `parallel`, `dos2unix`, `strace`, `nmap`, and more
 
-**Modern CLI tools**
+#### Modern CLI tools
+
 - `zoxide` (smart cd), `delta` (git diff), `lazygit` (git TUI), `gh` (GitHub CLI)
 - `glow` (markdown), `duf` (disk usage), `hyperfine` (benchmarking)
 
-**GUI apps** — `gedit`, `nautilus`, `evince`, `eog`, `file-roller`, `gnome-calculator`
+#### GUI apps
 
-**Dev tools**
+- `gedit`
+- `nautilus`
+- `evince`
+- `eog`
+- `file-roller`
+- `gnome-calculator`
+
+#### Dev tools
+
 - Git — configured with sensible defaults, delta as diff pager
 - SSH — ed25519 key generated if not present
 - VS Code — installed from official `.deb`
@@ -103,11 +121,13 @@ setup-check
 - CUDA toolkit — auto-detected; skipped on Crostini, installs on bare-metal with NVIDIA GPU
 
 ### Crostini extras (`chromebook_crostini.sh`)
+
 - Display protocol fix (`DISPLAY=:0`, `XAUTHORITY`) so `sudo gedit` works
 - `sudoers` passthrough for GUI apps under sudo
 - `gedit-sudo` wrapper
 
 ### Terminal (`terminal_setup.sh`)
+
 - **Starship** — prompt showing git branch/status, Python version, conda/mamba env, command duration
 - Simple fallback config for Chromebook (no Nerd Font required); full config via `prompt-nerd`
 - **JetBrainsMono Nerd Font** — installed to Linux fonts directory
@@ -119,7 +139,7 @@ setup-check
 
 ## Repo Structure
 
-```
+```text
 linux_setup/
 ├── README.md
 ├── install.sh                 ← single entry point (Chromebook + Linux)
@@ -141,20 +161,24 @@ linux_setup/
 ## Updating Your Setup
 
 ### Update everything on a machine
+
 ```bash
 setup-update && reload
 ```
 
 ### After changing a script or config
+
 ```bash
 cd ~/linux_setup
 micro configs/.bashrc_extras   # or whichever file
 git add . && git commit -m "describe change"
 git push
 ```
+
 Then on any other machine: `setup-update && reload`
 
 ### Fresh machine
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/romhom/linux_setup/main/install.sh | bash
 ```
@@ -200,10 +224,10 @@ pyinfo                        # Python environment summary
 
 ---
 
-
 ## Cheat Sheet
 
 ### Python Development
+
 | Command | Description |
 |---------|-------------|
 | `mkpy <name>` | Scaffold new project — pyproject.toml, ruff, mypy, pre-commit, Makefile |
@@ -220,6 +244,7 @@ pyinfo                        # Python environment summary
 | `pyinfo` | Show current Python environment summary |
 
 ### Code Quality
+
 | Command | Description |
 |---------|-------------|
 | `lint` | `ruff check .` |
@@ -232,6 +257,7 @@ pyinfo                        # Python environment summary
 | `tc` | `pytest --cov` |
 
 ### Git
+
 | Command | Description |
 |---------|-------------|
 | `lg` | lazygit TUI |
@@ -249,6 +275,7 @@ pyinfo                        # Python environment summary
 | `gst` / `gstp` | Stash / stash pop |
 
 ### GitHub CLI
+
 | Command | Description |
 |---------|-------------|
 | `ghpr` | Create PR |
@@ -268,6 +295,7 @@ pyinfo                        # Python environment summary
 | `crgdrive` | Jump to Google Drive |
 
 ### tmux
+
 | Command | Description |
 |---------|-------------|
 | `tn <name>` | New named session |
@@ -282,6 +310,7 @@ pyinfo                        # Python environment summary
 | `prefix + I` | Install plugins (first run) |
 
 ### Docker
+
 | Command | Description |
 |---------|-------------|
 | `dps` | `docker ps` |
@@ -305,6 +334,7 @@ pyinfo                        # Python environment summary
 | `serve <port>` | Quick HTTP server in current dir |
 
 ### Prompt (Chromebook)
+
 | Command | Description |
 |---------|-------------|
 | `prompt-simple` | Switch to plain prompt (any font) |
@@ -313,11 +343,10 @@ pyinfo                        # Python environment summary
 
 ---
 
----
-
 ## Terminal Behaviour & Keyboard Shortcuts
 
 ### History
+
 | Key | Action |
 |-----|--------|
 | `Up` / `Down` | Cycle through history matching current prefix |
@@ -327,6 +356,7 @@ pyinfo                        # Python environment summary
 Type a partial command then press Up to filter — e.g. type `git` then Up cycles only through git commands.
 
 ### Line editing
+
 | Key | Action |
 |-----|--------|
 | `Ctrl+A` | Jump to start of line |
@@ -340,6 +370,7 @@ Type a partial command then press Up to filter — e.g. type `git` then Up cycle
 | `Ctrl+Z` | Suspend process (resume with `fg`) |
 
 ### fzf (fuzzy finder)
+
 | Key | Action |
 |-----|--------|
 | `Ctrl+R` | Fuzzy search command history |
@@ -349,14 +380,17 @@ Type a partial command then press Up to filter — e.g. type `git` then Up cycle
 Inside fzf: type to filter, `Up`/`Down` to navigate, `Enter` to select, `Esc` to cancel.
 
 ### zoxide (smart cd)
+
 ```bash
 z proj          # jump to most-used dir matching 'proj'
 z foo bar       # match dir containing both 'foo' and 'bar'
 zi              # interactive fuzzy selection of recent dirs
 ```
+
 Builds up over time — the more you use a directory, the higher it ranks.
 
 ### Tab completion
+
 | Key | Action |
 |-----|--------|
 | `Tab` | Complete command, path, or argument |
@@ -365,15 +399,18 @@ Builds up over time — the more you use a directory, the higher it ranks.
 uv, gh, and git all have full tab completion wired up.
 
 ### Terminal tabs & sessions
+
 On Chromebook — open a new Linux terminal tab with `Ctrl+T` in the Terminal app. Each tab is a separate shell but shares the same Linux container.
 
 Use **tmux** instead for persistent sessions that survive terminal closes:
+
 ```bash
 tn work         # create session called 'work'
 ta              # reattach after closing terminal
 ```
 
 ### Background jobs
+
 ```bash
 some-command &      # run in background
 jobs                # list background jobs
@@ -383,6 +420,7 @@ Ctrl+Z              # suspend current job
 ```
 
 ### Useful patterns
+
 ```bash
 # Pipe to clipboard
 cat file.txt | pbcopy
