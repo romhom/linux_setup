@@ -79,10 +79,18 @@ _is_crostini() {
     [[ "$(hostname)" == "penguin" ]] || grep -qi "cros\|chromeos" /proc/version 2>/dev/null
 }
 
-if _is_crostini; then
+_in_kitty() {
+    [[ -n "${KITTY_WINDOW_ID:-}" ]]
+}
+
+if _is_crostini && _in_kitty; then
+    STARSHIP_CFG="$HOME/.config/starship/nerd.toml"
+    log "Crostini + kitty detected — using full Nerd Font prompt"
+elif _is_crostini; then
     STARSHIP_CFG="$HOME/.config/starship/simple.toml"
-    warn "Crostini detected — using simple prompt (Nerd Fonts not visible to Linux)"
-    info "To use Nerd Font prompt after installing font in ChromeOS: prompt-nerd"
+    warn "Crostini detected — using simple prompt (Nerd Fonts not visible to ChromeOS Terminal)"
+    info "Install kitty for Nerd Font support: bash terminal_setup.sh  (after kitty is running)"
+    info "Or switch manually once in kitty: prompt-nerd"
 elif _has_nerd_font; then
     STARSHIP_CFG="$HOME/.config/starship/nerd.toml"
     log "Nerd Font detected — using full prompt"
@@ -195,6 +203,29 @@ else
 fi
 
 
+# ── 7. Kitty terminal (Crostini only) ────────────────────────────────────────
+section "Kitty Terminal"
+if _is_crostini; then
+    if ! command -v kitty &>/dev/null; then
+        info "Installing kitty (GPU terminal — enables Nerd Fonts on Crostini)..."
+        TMP_KITTY=$(mktemp --suffix=.sh)
+        _TMPFILES+=("$TMP_KITTY")
+        curl -fsSL https://sw.kovidgoyal.net/kitty/installer.sh -o "$TMP_KITTY"
+        sh "$TMP_KITTY" launch=n
+        rm -f "$TMP_KITTY"
+        # Symlink into ~/.local/bin so it's on PATH
+        ln -sf "$HOME/.local/kitty.app/bin/kitty" "$HOME/.local/bin/kitty"
+        ln -sf "$HOME/.local/kitty.app/bin/kitten" "$HOME/.local/bin/kitten"
+        log "kitty installed → $HOME/.local/kitty.app"
+        info "Launch kitty from your Linux apps or run: kitty &"
+        info "Then re-run terminal_setup.sh inside kitty to activate Nerd Font prompt"
+    else
+        warn "kitty already installed — skipping"
+    fi
+else
+    info "Not Crostini — skipping kitty install"
+fi
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 section "Terminal Setup Complete"
 echo -e "${GREEN}${BOLD}"
@@ -204,8 +235,15 @@ echo "  ✔ tmux configured + tpm installed"
 echo "  ✔ nano configured"
 echo "  ✔ micro configured"
 echo "  ✔ JetBrainsMono Nerd Font installed"
+if _is_crostini; then
+    echo "  ✔ kitty terminal installed (Crostini)"
+fi
 echo -e "${RESET}"
 warn "Run: source ~/.bashrc   (or restart your terminal)"
-warn "Then: set terminal font to 'JetBrainsMono Nerd Font' in Terminal settings"
+if _is_crostini && ! _in_kitty; then
+    warn "Crostini: launch kitty, then re-run terminal_setup.sh inside it for Nerd Font prompt"
+else
+    warn "Then: set terminal font to 'JetBrainsMono Nerd Font' in Terminal settings"
+fi
 warn "Then: open tmux and press prefix + I to install plugins"
 echo ""
